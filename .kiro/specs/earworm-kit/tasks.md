@@ -12,24 +12,24 @@ Fixture-driven tests (task 18) depend on the user action in task 17 and are sche
 
 ## Tasks
 
-- [ ] 1. Fix tooling and add repository checks
+- [x] 1. Fix tooling and add repository checks
   - [x] 1.1 Point Vitest at the root `tests/` directory and make `npm test` a single run
     - In `vitest.config.mts`, keep the three projects from the design's Tooling subsection: `core` (Node) includes `tests/core/**/*.test.ts` and `tests/helpers/**/*.test.ts`; `browser` (Playwright Chromium) includes `tests/browser/**/*.test.ts`; `ui` (Playwright Chromium, `@vitejs/plugin-react`) includes `tests/ui/**/*.test.{ts,tsx}`
     - Keep coverage on `packages/*/src/**`
     - Add `provide: { pbtRuns }` to each project, where `pbtRuns` is 200 when `process.env.CI` is set to a value other than `""`, `"0"` or `"false"`, and 100 otherwise. This value reaches both Node and browser projects through `inject`
     - In the root `package.json`, change the `test` script from `vitest` to `vitest run`
     - _Requirements: 16.6, 16.7, 16.8_
-  - [ ] 1.2 Add the fast-check run-count helper
+  - [x] 1.2 Add the fast-check run-count helper
     - Create `tests/helpers/pbt.ts` exporting `runsFor(ci: boolean): number` (100 or 200) and `pbtParams(): { numRuns: number }`, which reads `inject("pbtRuns")` and never returns fewer than 100
     - Declare `pbtRuns: number` on Vitest's `ProvidedContext` in the same file
     - Add `tests/helpers/pbt.test.ts` asserting `runsFor(false) === 100`, `runsFor(true) === 200` and `pbtParams().numRuns >= 100`
     - _Requirements: 16.7, 16.8_
-  - [ ] 1.3 Add boundary checks for dependency-cruiser
+  - [x] 1.3 Add boundary checks for dependency-cruiser
     - Add a `tests-use-package-names` rule to `.dependency-cruiser.js` that forbids imports from `^tests/` into `^packages/` (same shape as `apps-use-package-names`)
     - Create a self-contained violating tree under `tests/helpers/boundary-fixture/` that mirrors the `packages/` layout (`packages/core/src/bad.ts` imports the stub `packages/browser`, `packages/browser/src/bad.ts` imports `react`) with its own `tsconfig.json`
     - Write `tests/core/packaging/boundaries.test.ts`: run `npm run lint:deps` on the repo and expect exit 0; run `depcruise` with the repo rule file and the working directory at the fixture root, and expect a non-zero exit with output naming each offending file and import
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.6_
-  - [ ] 1.4 Add the privacy and purity scan test
+  - [x] 1.4 Add the privacy and purity scan test
     - Write `tests/core/packaging/scan.test.ts` that reads every source file under `packages/`
     - Fail if any file under `packages/` matches a privacy pattern, using word boundaries: `\bMediaRecorder\b`, `\bfetch\b`, `\bXMLHttpRequest\b`, `\bWebSocket\b`, `\bsendBeacon\b`, `\blocalStorage\b`, `\bindexedDB\b`
     - Fail if any file under `packages/core/` matches `\bDate\.now\b`, `\bperformance\.now\b` or `\.currentTime\b`, or a browser global: `\bwindow\.`, `\bdocument\.`, `globalThis\.window`, `globalThis\.document`. Bare "window" is allowed, because Core legitimately uses it for window functions (hann, Window_Function, pitch window, attack window)
@@ -37,7 +37,7 @@ Fixture-driven tests (task 18) depend on the user action in task 17 and are sche
     - Put the patterns in an exported constant list and add a unit test of them in the same file or in a sibling file in `tests/core/packaging/`: `window.addEventListener` and `fetch(url)` fail; `windowFunction`, `hannWindow`, `const window = hann(n)`, `pitchWindow`, `prefetchHint` and `fetchedCount` pass
     - Fail if any file under `packages/` contains app-specific markers (a Morse table, story text, a song format), using a short word list (`morse`, `seance`, `séance`, `ditdah`, `loophole`)
     - _Requirements: 1.6, 14.14, 16.1, 16.9, 16.14_
-  - [ ] 1.5 Type-check the tests
+  - [x] 1.5 Type-check the tests
     - `@types/node` is already a root devDependency, so nothing is installed
     - Create `tests/tsconfig.json` that extends `../tsconfig.json`, sets `"types": ["node"]`, includes `**/*.ts` and `**/*.tsx` under `tests/` and excludes `helpers/boundary-fixture`
     - Change the root `package.json` `typecheck` script to `npm run typecheck --workspaces --if-present && tsc -p tests/tsconfig.json --noEmit`

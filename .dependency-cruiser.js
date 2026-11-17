@@ -34,6 +34,13 @@ module.exports = {
       to: { path: "^packages/", dependencyTypesNot: ["aliased-workspace"] },
     },
     {
+      name: "tests-use-package-names",
+      comment: "Tests import @earworm/* by name, never a path into packages/.",
+      severity: "error",
+      from: { path: "^tests/" },
+      to: { path: "^packages/", dependencyTypesNot: ["aliased-workspace"] },
+    },
+    {
       name: "no-circular",
       severity: "error",
       from: {},
@@ -41,6 +48,8 @@ module.exports = {
     },
   ],
   options: {
+    // The boundary fixture violates the rules on purpose. Its test cruises it directly.
+    exclude: { path: "^tests/helpers/boundary-fixture/" },
     doNotFollow: { path: "node_modules" },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
