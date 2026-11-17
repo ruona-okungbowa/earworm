@@ -1,4 +1,4 @@
-/** Milliseconds on the Audio_Clock (`AudioContext.currentTime × 1000`). */
+/** Milliseconds on the Audio_Clock (the Web Audio context clock, in ms). */
 export type Ms = number;
 
 export type KitErrorCode =

@@ -17,6 +17,15 @@ export type {
   SettingSpec,
 } from "./config.js";
 export { frameLevelDb } from "./detector-utils.js";
+export { createLevelDetector } from "./detectors/level.js";
+export type { LevelDetector, LevelDetectorConfig } from "./detectors/level.js";
+export { createEnvelopeDetector } from "./detectors/envelope.js";
+export type {
+  EnvelopeDetector,
+  EnvelopeDetectorConfig,
+} from "./detectors/envelope.js";
+export { createOnsetDetector } from "./detectors/onset.js";
+export type { OnsetDetector, OnsetDetectorConfig } from "./detectors/onset.js";
 export { createEmitter } from "./emitter.js";
 export type { Emitter, EmitterOptions } from "./emitter.js";
 export type {
