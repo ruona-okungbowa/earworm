@@ -1,0 +1,17 @@
+{
+  "name": "@earworm/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@earworm/core": "*",
+    "@earworm/browser": "*"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  }
+}
