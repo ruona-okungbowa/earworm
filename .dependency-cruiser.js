@@ -1,0 +1,49 @@
+/** Boundary rules between the Earworm packages. */
+module.exports = {
+  forbidden: [
+    {
+      name: "core-stays-pure",
+      comment:
+        "@earworm/core runs anywhere: no browser, ui or testing packages, and no React.",
+      severity: "error",
+      from: { path: "^packages/core/" },
+      to: {
+        path: [
+          "^packages/(browser|ui|testing)/",
+          "node_modules/(react|react-dom)/",
+        ],
+      },
+    },
+    {
+      name: "browser-has-no-ui",
+      comment: "@earworm/browser may use core, but not ui or React.",
+      severity: "error",
+      from: { path: "^packages/browser/" },
+      to: {
+        path: ["^packages/(ui|testing)/", "node_modules/(react|react-dom)/"],
+      },
+    },
+    {
+      name: "apps-use-package-names",
+      comment: "Apps import @earworm/* by name, never a path into packages/.",
+      severity: "error",
+      from: { path: "^(apps)/" },
+      to: { path: "^packages/", dependencyTypesNot: ["aliased-workspace"] },
+    },
+    {
+      name: "no-circular",
+      severity: "error",
+      from: {},
+      to: { circular: true },
+    },
+  ],
+  options: {
+    doNotFollow: { path: "node_modules" },
+    tsPreCompilationDeps: true,
+    tsConfig: { fileName: "tsconfig.json" },
+    enhancedResolveOptions: {
+      exportsFields: ["exports"],
+      conditionNames: ["import", "default"],
+    },
+  },
+};
