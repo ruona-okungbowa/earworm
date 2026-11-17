@@ -10,7 +10,7 @@ module.exports = {
       to: {
         path: [
           "^packages/(browser|ui|testing)/",
-          "node_modules/(react|react-dom)/",
+          "node_modules/(@types/)?(react|react-dom)/",
         ],
       },
     },
@@ -20,7 +20,10 @@ module.exports = {
       severity: "error",
       from: { path: "^packages/browser/" },
       to: {
-        path: ["^packages/(ui|testing)/", "node_modules/(react|react-dom)/"],
+        path: [
+          "^packages/(ui|testing)/",
+          "node_modules/(@types/)?(react|react-dom)/",
+        ],
       },
     },
     {
