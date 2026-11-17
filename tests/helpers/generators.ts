@@ -44,7 +44,8 @@ export function harmonicTone(
   amps.forEach((amp, k) => {
     const f = f0 * (k + 1);
     for (let i = 0; i < n; i++) {
-      out[i] = (out[i] ?? 0) + amp * Math.sin((2 * Math.PI * f * i) / sampleRate);
+      out[i] =
+        (out[i] ?? 0) + amp * Math.sin((2 * Math.PI * f * i) / sampleRate);
     }
   });
   return out;
@@ -54,7 +55,9 @@ export function harmonicTone(
  * Seeded white noise source. Each call to the returned function yields the next `n`
  * uniform samples in [-amp, amp]; the same seed gives the same sequence.
  */
-export function whiteNoise(seed: number): (n: number, amp?: number) => Float32Array {
+export function whiteNoise(
+  seed: number,
+): (n: number, amp?: number) => Float32Array {
   const rng = createRng(seed);
   return (n, amp = 1) => {
     const out = new Float32Array(n);
@@ -63,17 +66,26 @@ export function whiteNoise(seed: number): (n: number, amp?: number) => Float32Ar
   };
 }
 
-/** Single-sample impulses of height `amp` at each time in `timesMs` (ms from sample 0). */
+/**
+ * Impulses of height `amp` at each time in `timesMs` (ms from sample 0). By default each
+ * is a single sample. With `widthMs` > 0 each is a rectangular pulse of that width, which
+ * keeps the click's Frame level well above the Noise_Floor at larger frame sizes.
+ */
 export function clickTrain(
   timesMs: readonly Ms[],
   amp: number,
   n: number,
   sampleRate: number,
+  widthMs = 0,
 ): Float32Array {
   const out = new Float32Array(n);
+  const width = Math.max(1, Math.round((widthMs * sampleRate) / 1000));
   for (const t of timesMs) {
-    const i = Math.round((t * sampleRate) / 1000);
-    if (i >= 0 && i < n) out[i] = amp;
+    const start = Math.round((t * sampleRate) / 1000);
+    for (let j = 0; j < width; j++) {
+      const i = start + j;
+      if (i >= 0 && i < n) out[i] = amp;
+    }
   }
   return out;
 }
@@ -86,7 +98,11 @@ export interface Burst {
 }
 
 /** Tone bursts with 1 ms linear attack and release, placed by time in ms from sample 0. */
-export function burstTrain(bursts: readonly Burst[], n: number, sampleRate: number): Float32Array {
+export function burstTrain(
+  bursts: readonly Burst[],
+  n: number,
+  sampleRate: number,
+): Float32Array {
   const out = new Float32Array(n);
   const ramp = Math.max(1, Math.round(sampleRate / 1000));
   for (const b of bursts) {
@@ -96,7 +112,9 @@ export function burstTrain(bursts: readonly Burst[], n: number, sampleRate: numb
       const i = start + j;
       if (i < 0 || i >= n) continue;
       const env = Math.min(1, (j + 1) / ramp, (len - j) / ramp);
-      out[i] = (out[i] ?? 0) + env * b.amp * Math.sin((2 * Math.PI * b.freq * j) / sampleRate);
+      out[i] =
+        (out[i] ?? 0) +
+        env * b.amp * Math.sin((2 * Math.PI * b.freq * j) / sampleRate);
     }
   }
   return out;
@@ -124,13 +142,18 @@ export interface EnergyCheckOptions {
  * up to `0.9 × size/2`. Amplitudes sum to at most 0.99, so samples stay in [-1, 1], and
  * each is at least a quarter of an equal share, which keeps the Frame level above -50 dBFS.
  */
-export function energyCheckFrame(options: EnergyCheckOptions = {}): fc.Arbitrary<EnergyCheckFrame> {
+export function energyCheckFrame(
+  options: EnergyCheckOptions = {},
+): fc.Arbitrary<EnergyCheckFrame> {
   const sizes = options.sizes ?? [256, 512, 1024, 2048];
   const sampleRate = options.sampleRate ?? 48000;
   return fc.constantFrom(...sizes).chain((size) => {
     const maxBin = Math.floor(0.9 * (size / 2));
     return fc
-      .uniqueArray(fc.integer({ min: 0, max: maxBin }), { minLength: 1, maxLength: 8 })
+      .uniqueArray(fc.integer({ min: 0, max: maxBin }), {
+        minLength: 1,
+        maxLength: 8,
+      })
       .chain((rawBins) =>
         fc
           .tuple(
@@ -144,7 +167,9 @@ export function energyCheckFrame(options: EnergyCheckOptions = {}): fc.Arbitrary
             }),
           )
           .map(([weights, phases]) => {
-            const order = rawBins.map((_, i) => i).sort((a, b) => rawBins[a]! - rawBins[b]!);
+            const order = rawBins
+              .map((_, i) => i)
+              .sort((a, b) => rawBins[a]! - rawBins[b]!);
             const bins = order.map((i) => rawBins[i]!);
             const sum = weights.reduce((s, w) => s + w, 0);
             const amps = order.map((i) => (weights[i]! / sum) * 0.99);
@@ -156,7 +181,9 @@ export function energyCheckFrame(options: EnergyCheckOptions = {}): fc.Arbitrary
               for (let i = 0; i < size; i++) {
                 samples[i] =
                   (samples[i] ?? 0) +
-                  (k === 0 ? a : a * Math.sin((2 * Math.PI * k * i) / size + phase));
+                  (k === 0
+                    ? a
+                    : a * Math.sin((2 * Math.PI * k * i) / size + phase));
               }
             });
             return {
@@ -172,7 +199,10 @@ export function energyCheckFrame(options: EnergyCheckOptions = {}): fc.Arbitrary
   });
 }
 
-export type InvalidFrameKind = "empty" | "non-finite-sample" | "stale-timestamp";
+export type InvalidFrameKind =
+  | "empty"
+  | "non-finite-sample"
+  | "stale-timestamp";
 export type FrameKind = "valid" | InvalidFrameKind;
 
 export interface TaggedFrame {
@@ -201,7 +231,9 @@ export interface FrameSequenceOptions {
  * non-finite sample, or a Frame whose Timestamp is earlier than the previous valid
  * Frame's. The first Frame is always valid so a previous Timestamp exists.
  */
-export function frameSequence(options: FrameSequenceOptions = {}): fc.Arbitrary<TaggedFrame[]> {
+export function frameSequence(
+  options: FrameSequenceOptions = {},
+): fc.Arbitrary<TaggedFrame[]> {
   const frameSize = options.frameSize ?? 128;
   const sampleRate = options.sampleRate ?? 48000;
   const startMs = options.startMs ?? 0;
@@ -226,7 +258,10 @@ export function frameSequence(options: FrameSequenceOptions = {}): fc.Arbitrary<
   });
 
   return fc
-    .array(item, { minLength: options.minLength ?? 1, maxLength: options.maxLength ?? 20 })
+    .array(item, {
+      minLength: options.minLength ?? 1,
+      maxLength: options.maxLength ?? 20,
+    })
     .map((items) => {
       const out: TaggedFrame[] = [];
       let lastValid = startMs - step;
@@ -245,7 +280,11 @@ export function frameSequence(options: FrameSequenceOptions = {}): fc.Arbitrary<
           samples[it.badIndex % samples.length] = it.badValue;
         }
         if (kind === "valid") lastValid = timestamp;
-        out.push({ frame: { samples, timestamp }, kind, valid: kind === "valid" });
+        out.push({
+          frame: { samples, timestamp, sampleRate },
+          kind,
+          valid: kind === "valid",
+        });
       });
       return out;
     });
