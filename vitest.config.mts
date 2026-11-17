@@ -10,6 +10,11 @@ const browser = () => ({
   instances: [{ browser: "chromium" as const }],
 });
 
+// 200 property-test runs in CI, 100 locally. `CI` unset, "", "0" or "false" means local.
+const ci = process.env.CI;
+const pbtRuns =
+  ci !== undefined && ci !== "" && ci !== "0" && ci !== "false" ? 200 : 100;
+
 export default defineConfig({
   test: {
     coverage: {
@@ -21,14 +26,16 @@ export default defineConfig({
       {
         test: {
           name: "core",
-          include: ["packages/core/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+          include: ["tests/core/**/*.test.ts", "tests/helpers/**/*.test.ts"],
+          provide: { pbtRuns },
           environment: "node",
         },
       },
       {
         test: {
           name: "browser",
-          include: ["packages/browser/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+          include: ["tests/browser/**/*.test.ts"],
+          provide: { pbtRuns },
           browser: browser(),
         },
       },
@@ -36,7 +43,8 @@ export default defineConfig({
         plugins: [react()],
         test: {
           name: "ui",
-          include: ["packages/ui/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+          include: ["tests/ui/**/*.test.{ts,tsx}"],
+          provide: { pbtRuns },
           browser: browser(),
         },
       },
