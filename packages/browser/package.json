@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "@earworm/core": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   }
 }
