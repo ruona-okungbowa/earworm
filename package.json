@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest",
-    "lint:deps": "depcruise packages apps",
+    "lint:deps": "depcruise packages apps tests",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "keywords": [],
