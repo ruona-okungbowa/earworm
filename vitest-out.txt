@@ -1,9 +1,0 @@
-
- RUN  v5.1.0 C:/Users/ruona/OneDrive/Documents/Kiroween/earworm
-
-
- Test Files  1 passed (1)
-      Tests  13 passed (13)
-   Start at  20:50:43
-   Duration  492ms (transform 41%, import 35%, tests 13%, worker 11%)
-
