@@ -30,6 +30,13 @@ export { createPitchDetector } from "./detectors/pitch.js";
 export type { PitchDetector, PitchDetectorConfig } from "./detectors/pitch.js";
 export { createSoundDetector } from "./detectors/sound.js";
 export type { SoundDetector, SoundDetectorConfig } from "./detectors/sound.js";
+export { createBandDetector } from "./detectors/band.js";
+export type { BandDetector, BandDetectorConfig } from "./detectors/band.js";
+export { createSpectrumDetector } from "./detectors/spectrum.js";
+export type {
+  SpectrumDetector,
+  SpectrumDetectorConfig,
+} from "./detectors/spectrum.js";
 export {
   fft,
   windowCoefficients,
@@ -37,6 +44,8 @@ export {
   WINDOW_NAMES,
 } from "./fft.js";
 export type { WindowName } from "./fft.js";
+export { spectrum } from "./spectrum.js";
+export { bands, BAND_PRESET } from "./bands.js";
 export { createEmitter } from "./emitter.js";
 export type { Emitter, EmitterOptions } from "./emitter.js";
 export type {
