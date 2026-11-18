@@ -46,6 +46,10 @@ export function createOnsetDetector(
 
   let armed = true;
   let lastOnsetTs: Ms | null = null;
+  // Timestamp of the first accepted Frame since construction or reset().
+  let firstTs: Ms | null = null;
+  // Highest Frame level since the last Onset (used to re-arm in a noisy room).
+  let peakSinceOnset = -Infinity;
   // Levels of recent Frames inside the attack window span.
   let recent: Entry[] = [];
 
@@ -74,15 +78,27 @@ export function createOnsetDetector(
         for (const e of recent) if (e.level < minLevel) minLevel = e.level;
       }
 
+      if (firstTs === null) firstTs = ts;
+      // An Onset needs a full attack window of history.
+      const hasHistory = ts - firstTs >= attackWindow;
+
       const events: EarwormEvent[] = [];
+      if (!armed) {
+        // Re-arm when the level is back near the floor, or has fallen
+        // `threshold` dB below the peak since the last Onset.
+        if (level > peakSinceOnset) peakSinceOnset = level;
+        if (level <= thr || level <= peakSinceOnset - threshold) armed = true;
+      }
       if (level > thr) {
         if (
           armed &&
+          hasHistory &&
           level - minLevel > threshold &&
           (lastOnsetTs === null || ts - lastOnsetTs >= refractory)
         ) {
           armed = false;
           lastOnsetTs = ts;
+          peakSinceOnset = level;
           events.push({
             type: "onset",
             timestamp: ts,
@@ -90,8 +106,6 @@ export function createOnsetDetector(
             strength: Math.min(1, (level - noiseFloor) / (threshold + 40)),
           });
         }
-      } else {
-        armed = true;
       }
 
       recent.push({ timestamp: ts, level });
@@ -101,6 +115,8 @@ export function createOnsetDetector(
       guard.reset();
       armed = true;
       lastOnsetTs = null;
+      firstTs = null;
+      peakSinceOnset = -Infinity;
       recent = [];
     },
     flush(): EarwormEvent[] {

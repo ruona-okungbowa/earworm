@@ -1,0 +1,255 @@
+{
+  "fixtures": [
+    {
+      "name": "clap-8",
+      "file": "clap-8.wav",
+      "kind": "onset",
+      "expected": {
+        "onsets": [
+          {
+            "t": 479.1
+          },
+          {
+            "t": 1293.2
+          },
+          {
+            "t": 2127.5
+          },
+          {
+            "t": 2974.0
+          },
+          {
+            "t": 3795.1
+          },
+          {
+            "t": 4626.9
+          },
+          {
+            "t": 5463.1
+          },
+          {
+            "t": 6319.7
+          }
+        ]
+      },
+      "noiseFloorDb": -45.3
+    },
+    {
+      "name": "door",
+      "file": "door.wav",
+      "kind": "door",
+      "expected": {
+        "maxOnsets": 1
+      },
+      "noiseFloorDb": -34.7,
+      "pending": "re-record"
+    },
+    {
+      "name": "fan",
+      "file": "fan.wav",
+      "kind": "noise",
+      "expected": {
+        "onsets": [],
+        "sounds": []
+      },
+      "noiseFloorDb": -42.7
+    },
+    {
+      "name": "hum-steady-high",
+      "file": "hum-steady-high.wav",
+      "kind": "sustained",
+      "expected": {
+        "sounds": [
+          {
+            "startTime": 488.0,
+            "endTime": 4090.0
+          }
+        ],
+        "pitches": [
+          {
+            "startTime": 488.0,
+            "endTime": 4090.0,
+            "hz": 460.4
+          }
+        ]
+      },
+      "noiseFloorDb": -41.1
+    },
+    {
+      "name": "hum-steady-low",
+      "file": "hum-steady-low.wav",
+      "kind": "sustained",
+      "expected": {
+        "sounds": [
+          {
+            "startTime": 394.0,
+            "endTime": 4330.0
+          }
+        ],
+        "pitches": [
+          {
+            "startTime": 394.0,
+            "endTime": 4330.0,
+            "hz": 236.8
+          }
+        ],
+        "envelope": [
+          {
+            "t": 2000.0,
+            "level": -11.05,
+            "attackMs": 10,
+            "releaseMs": 300,
+            "frameSize": 128
+          }
+        ],
+        "bands": [
+          {
+            "t": 2000.0,
+            "values": {
+              "low": -14.87,
+              "mid": -17.48,
+              "high": -40.05
+            },
+            "fftSize": 2048,
+            "window": "hann",
+            "bands": "BAND_PRESET",
+            "unit": "dbfs",
+            "frameSize": 128
+          }
+        ],
+        "spectrum": [
+          {
+            "t": 2000.0,
+            "bin": 10,
+            "fftSize": 2048,
+            "window": "hann",
+            "frameSize": 128
+          }
+        ]
+      },
+      "noiseFloorDb": -42.5
+    },
+    {
+      "name": "hum-steady",
+      "file": "hum-steady.wav",
+      "kind": "sustained",
+      "expected": {
+        "sounds": [
+          {
+            "startTime": 310.0,
+            "endTime": 3450.0
+          }
+        ],
+        "pitches": [
+          {
+            "startTime": 310.0,
+            "endTime": 3450.0,
+            "hz": 314.2
+          }
+        ]
+      },
+      "noiseFloorDb": -39.8
+    },
+    {
+      "name": "knock-3-even",
+      "file": "knock-3-even.wav",
+      "kind": "onset",
+      "expected": {
+        "onsets": [
+          {
+            "t": 443.8
+          },
+          {
+            "t": 1003.4
+          },
+          {
+            "t": 1537.1
+          }
+        ]
+      },
+      "noiseFloorDb": -42.2
+    },
+    {
+      "name": "knock-loud",
+      "file": "knock-loud.wav",
+      "kind": "onset",
+      "expected": {
+        "onsets": [
+          {
+            "t": 952.5
+          },
+          {
+            "t": 2016.9
+          },
+          {
+            "t": 3101.4
+          },
+          {
+            "t": 4206.6
+          },
+          {
+            "t": 5347.8
+          }
+        ]
+      },
+      "noiseFloorDb": -42.0
+    },
+    {
+      "name": "knock-soft",
+      "file": "knock-soft.wav",
+      "kind": "onset",
+      "expected": {
+        "onsets": [
+          {
+            "t": 486.7
+          },
+          {
+            "t": 1319.0
+          },
+          {
+            "t": 2110.1
+          },
+          {
+            "t": 2915.5
+          },
+          {
+            "t": 3700.3
+          }
+        ]
+      },
+      "noiseFloorDb": -42.5
+    },
+    {
+      "name": "quiet-room",
+      "file": "quiet-room.wav",
+      "kind": "noise",
+      "expected": {
+        "onsets": [],
+        "sounds": []
+      },
+      "noiseFloorDb": -84.1,
+      "pending": "re-record"
+    },
+    {
+      "name": "whistle-steady",
+      "file": "whistle-steady.wav",
+      "kind": "sustained",
+      "expected": {
+        "sounds": [
+          {
+            "startTime": 324.0,
+            "endTime": 3610.0
+          }
+        ],
+        "pitches": [
+          {
+            "startTime": 324.0,
+            "endTime": 3610.0,
+            "hz": 1417.8
+          }
+        ]
+      },
+      "noiseFloorDb": -41.7
+    }
+  ]
+}

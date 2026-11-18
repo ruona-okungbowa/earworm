@@ -15,7 +15,9 @@ export type ConfigSpec = Readonly<Record<string, SettingSpec>>;
 export type Resolved<S extends ConfigSpec> = { [K in keyof S]: number };
 
 /** Caller input: every setting is optional. `undefined` counts as omitted. */
-export type PartialConfig<S extends ConfigSpec> = { [K in keyof S]?: number | undefined };
+export type PartialConfig<S extends ConfigSpec> = {
+  [K in keyof S]?: number | undefined;
+};
 
 function setting(def: number, min: number, max: number): SettingSpec {
   return { default: def, min, max };
@@ -35,7 +37,7 @@ export const DEFAULTS = {
   onset: {
     threshold: setting(10, 3, 40),
     attackWindow: setting(30, 5, 100),
-    refractory: setting(60, 0, 1000),
+    refractory: setting(100, 0, 1000),
   },
   pitch: {
     confidenceThreshold: setting(0.8, 0, 1),
@@ -95,7 +97,9 @@ export function resolveConfig<S extends ConfigSpec>(
 
   for (const name of Object.keys(input)) {
     if (input[name] !== undefined && !Object.hasOwn(spec, name)) {
-      return err("invalid-config", `Unknown setting "${name}"`, { setting: name });
+      return err("invalid-config", `Unknown setting "${name}"`, {
+        setting: name,
+      });
     }
   }
 
@@ -108,12 +112,20 @@ export function resolveConfig<S extends ConfigSpec>(
       continue;
     }
     if (typeof given !== "number" || !Number.isFinite(given)) {
-      return err("invalid-config", `Setting "${name}" must be a finite number`, { setting: name });
+      return err(
+        "invalid-config",
+        `Setting "${name}" must be a finite number`,
+        { setting: name },
+      );
     }
     if (given < s.min || given > s.max) {
-      return err("invalid-config", `Setting "${name}" must be from ${s.min} to ${s.max}`, {
-        setting: name,
-      });
+      return err(
+        "invalid-config",
+        `Setting "${name}" must be from ${s.min} to ${s.max}`,
+        {
+          setting: name,
+        },
+      );
     }
     out[name] = given;
   }

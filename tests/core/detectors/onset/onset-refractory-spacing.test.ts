@@ -79,7 +79,14 @@ describe("Property 9: Onset refractory spacing and strength", () => {
       fc.property(aboveThreshold, aboveThreshold, (a, b) => {
         const [lowDb, highDb] = a <= b ? [a, b] : [b, a];
         const strengthAt = (db: number): number => {
-          const events = onsetsOf(makeDetector().process(constantFrame(db, 0)));
+          // A quiet lead-in gives the Frame under test a full attack window of history.
+          const detector = makeDetector();
+          detector.process({
+            samples: new Float32Array(128),
+            timestamp: 0,
+            sampleRate: 48000,
+          });
+          const events = onsetsOf(detector.process(constantFrame(db, 31)));
           expect(events).toHaveLength(1);
           return events[0]!.strength;
         };
