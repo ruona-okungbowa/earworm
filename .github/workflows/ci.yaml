@@ -1,19 +1,14 @@
 name: CI
-
 on:
   push:
     branches: [develop]
-
 permissions:
   contents: read
-
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
-
 env:
   NODE_VERSION: 22
-
 jobs:
   lint-deps:
     name: Package boundaries
@@ -26,7 +21,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint:deps
-
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
@@ -38,7 +32,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
@@ -48,7 +41,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - run: npm audit --audit-level=high
-
   test:
     name: Test ${{ matrix.project }}
     needs: [lint-deps, typecheck]
@@ -70,16 +62,21 @@ jobs:
         run: npx playwright install --with-deps chromium
       # --passWithNoTests keeps the job green until each package has tests.
       # Remove it once they do, so a package that loses its tests fails CI.
+      # Coverage instrumentation distorts perf timings, so perf tests are
+      # excluded here and run separately in the next step.
       - run: >-
           npx vitest run --project ${{ matrix.project }} --passWithNoTests
+          --exclude "tests/core/perf/**"
           --coverage --coverage.reportsDirectory=coverage/${{ matrix.project }}
+      - name: Perf tests (no coverage)
+        if: matrix.project == 'core'
+        run: npx vitest run --project core tests/core/perf
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: coverage-${{ matrix.project }}
           path: coverage/${{ matrix.project }}
           if-no-files-found: ignore
-
   ci-passed:
     name: CI passed
     if: always()

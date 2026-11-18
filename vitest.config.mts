@@ -29,6 +29,8 @@ export default defineConfig({
           include: ["tests/core/**/*.test.ts", "tests/helpers/**/*.test.ts"],
           provide: { pbtRuns },
           environment: "node",
+          // Property tests run 200 cases under coverage in CI and exceed the 5 s default.
+          testTimeout: 60_000,
         },
       },
       {
