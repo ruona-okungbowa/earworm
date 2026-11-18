@@ -26,6 +26,8 @@ export type {
 } from "./detectors/envelope.js";
 export { createOnsetDetector } from "./detectors/onset.js";
 export type { OnsetDetector, OnsetDetectorConfig } from "./detectors/onset.js";
+export { createSoundDetector } from "./detectors/sound.js";
+export type { SoundDetector, SoundDetectorConfig } from "./detectors/sound.js";
 export { createEmitter } from "./emitter.js";
 export type { Emitter, EmitterOptions } from "./emitter.js";
 export type {

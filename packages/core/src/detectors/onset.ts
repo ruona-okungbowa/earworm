@@ -46,7 +46,8 @@ export function createOnsetDetector(
 
   let armed = true;
   let lastOnsetTs: Ms | null = null;
-  let window: Entry[] = [];
+  // Levels of recent Frames inside the attack window span.
+  let recent: Entry[] = [];
 
   const detector: OnsetDetector = {
     name: "onset",
@@ -56,18 +57,21 @@ export function createOnsetDetector(
       const level = frameLevelDb(frame.samples);
       const thr = noiseFloor + threshold;
 
-      // Drop entries older than the attack window.
+      // Drop entries older than the attack window span.
       let drop = 0;
-      while (drop < window.length && (window[drop] as Entry).timestamp < ts - attackWindow) {
+      while (
+        drop < recent.length &&
+        (recent[drop] as Entry).timestamp < ts - attackWindow
+      ) {
         drop++;
       }
-      if (drop > 0) window = window.slice(drop);
+      if (drop > 0) recent = recent.slice(drop);
 
-      // With no earlier Frame in the window, the Noise_Floor is the baseline.
+      // With no earlier Frame in the attack window, the Noise_Floor is the baseline.
       let minLevel = noiseFloor;
-      if (window.length > 0) {
+      if (recent.length > 0) {
         minLevel = Infinity;
-        for (const e of window) if (e.level < minLevel) minLevel = e.level;
+        for (const e of recent) if (e.level < minLevel) minLevel = e.level;
       }
 
       const events: EarwormEvent[] = [];
@@ -90,14 +94,14 @@ export function createOnsetDetector(
         armed = true;
       }
 
-      window.push({ timestamp: ts, level });
+      recent.push({ timestamp: ts, level });
       return events;
     },
     reset(): void {
       guard.reset();
       armed = true;
       lastOnsetTs = null;
-      window = [];
+      recent = [];
     },
     flush(): EarwormEvent[] {
       return [];
