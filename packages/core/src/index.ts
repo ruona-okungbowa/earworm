@@ -46,7 +46,18 @@ export {
 export type { WindowName } from "./fft.js";
 export { spectrum } from "./spectrum.js";
 export { bands, BAND_PRESET } from "./bands.js";
+export { quantise } from "./quantise.js";
+export type { BeatGrid } from "./quantise.js";
+export { classify } from "./classify.js";
+export type { ClassifyItem, ClassifyResult } from "./classify.js";
+export { segment } from "./segment.js";
+export type { Mark, SegmentConfig, SegmentInput } from "./segment.js";
+export { match, intervalsToPattern } from "./match.js";
+export type { Pattern, MatchResult } from "./match.js";
+export { serialiseRecording, parseRecording } from "./recording.js";
+export { shiftEvent, flushDetectors } from "./shift.js";
 export { createEmitter } from "./emitter.js";
+export { createReplaySource } from "./replay.js";
 export type { Emitter, EmitterOptions } from "./emitter.js";
 export type {
   Band,
