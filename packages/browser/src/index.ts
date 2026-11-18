@@ -16,6 +16,35 @@ export type {
   VoiceBuilder,
   VoiceParams,
 } from "./synth.js";
+export { createCapturePipeline } from "./capture.js";
+export type {
+  CaptureCalibration,
+  CapturePipeline,
+  CapturePipelineOptions,
+  CaptureState,
+} from "./capture.js";
+export { createFrameProcessor } from "./frame-processor.js";
+export type {
+  FrameProcessor,
+  FrameProcessorCalibration,
+  FrameProcessorOptions,
+} from "./frame-processor.js";
+export { medianLatency, noiseFloorFromLevels } from "./calibration-math.js";
+export {
+  createCalibrationStore,
+  parseCalibration,
+  serialiseCalibration,
+} from "./calibration-store.js";
+export type { Calibration, CalibrationStore } from "./calibration-store.js";
+export { createCalibrator } from "./calibrator.js";
+export type {
+  CalibrateOptions,
+  Calibrator,
+  CalibratorOptions,
+  MeasureLatencyOptions,
+  MeasureNoiseFloorOptions,
+} from "./calibrator.js";
+export { getWorkletUrl } from "./worklet-url-loader.js";
 export { validateScheduleRequest } from "./schedule-validation.js";
 export type {
   ScheduleOptions,
