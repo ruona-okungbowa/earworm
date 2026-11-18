@@ -14,7 +14,10 @@ function make(refractory: number): OnsetDetector {
   return r.value;
 }
 
-function firstOnset(d: OnsetDetector, frames: readonly Frame[]): EarwormEvent | undefined {
+function firstOnset(
+  d: OnsetDetector,
+  frames: readonly Frame[],
+): EarwormEvent | undefined {
   for (const f of frames) {
     const ev = d.process(f).find((e) => e.type === "onset");
     if (ev) return ev;
@@ -81,6 +84,12 @@ describe("Property 57: No refractory suppression before the first Onset", () => 
           };
 
           const d = make(refractory);
+          // Silent lead-in so the loud Frame has a full attack window of history.
+          d.process({
+            samples: new Float32Array(first.samples.length),
+            timestamp: pre.timestamp - 31,
+            sampleRate: first.sampleRate,
+          });
           const preEvents = d.process(pre).filter((e) => e.type === "onset");
           expect(preEvents.length).toBe(1);
 
@@ -99,6 +108,7 @@ describe("Property 57: No refractory suppression before the first Onset", () => 
       sampleRate: 48000,
     });
     const d = make(1000);
+    d.process({ ...loud(-530), samples: new Float32Array(128) });
     const ev = d.process(loud(-500));
     expect(ev.map((e) => e.type)).toEqual(["onset"]);
     expect(ev[0]?.timestamp).toBe(-500);
