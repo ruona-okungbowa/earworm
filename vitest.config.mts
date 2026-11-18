@@ -43,6 +43,9 @@ export default defineConfig({
       },
       {
         plugins: [react()],
+        // Pre-bundle React up front. Discovering react-dom/client mid-run makes Vite
+        // reload, which leaves two React copies and breaks every hook call.
+        optimizeDeps: { include: ["react", "react-dom", "react-dom/client"] },
         test: {
           name: "ui",
           include: ["tests/ui/**/*.test.{ts,tsx}"],

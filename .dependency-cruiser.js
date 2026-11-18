@@ -27,6 +27,16 @@ module.exports = {
       },
     },
     {
+      name: "worklet-imports-only-core-framing",
+      comment:
+        "The Worklet runs in AudioWorkletGlobalScope and may import only @earworm/core/framing.",
+      severity: "error",
+      from: { path: "^packages/browser/src/worklet\\.ts$" },
+      to: {
+        pathNot: "^packages/core/src/framing\\.ts$",
+      },
+    },
+    {
       name: "apps-use-package-names",
       comment: "Apps import @earworm/* by name, never a path into packages/.",
       severity: "error",
