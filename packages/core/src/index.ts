@@ -26,8 +26,17 @@ export type {
 } from "./detectors/envelope.js";
 export { createOnsetDetector } from "./detectors/onset.js";
 export type { OnsetDetector, OnsetDetectorConfig } from "./detectors/onset.js";
+export { createPitchDetector } from "./detectors/pitch.js";
+export type { PitchDetector, PitchDetectorConfig } from "./detectors/pitch.js";
 export { createSoundDetector } from "./detectors/sound.js";
 export type { SoundDetector, SoundDetectorConfig } from "./detectors/sound.js";
+export {
+  fft,
+  windowCoefficients,
+  SUPPORTED_FFT_SIZES,
+  WINDOW_NAMES,
+} from "./fft.js";
+export type { WindowName } from "./fft.js";
 export { createEmitter } from "./emitter.js";
 export type { Emitter, EmitterOptions } from "./emitter.js";
 export type {
