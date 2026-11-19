@@ -9,3 +9,5 @@ export {
   useBands,
 } from "./hooks.js";
 export type { CalibrationState, UseEventsOptions } from "./hooks.js";
+export { MicCheck } from "./MicCheck.js";
+export type { MicCheckProps, MicPermissionState } from "./MicCheck.js";
