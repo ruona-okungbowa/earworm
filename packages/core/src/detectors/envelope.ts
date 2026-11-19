@@ -3,6 +3,7 @@ import type { PartialConfig } from "../config.js";
 import {
   createFrameGuard,
   createRateGate,
+  definedOnly,
   frameLevelDb,
 } from "../detector-utils.js";
 import type { Detector, EarwormEvent, Frame } from "../events.js";
@@ -18,15 +19,6 @@ export interface EnvelopeDetector extends Detector {
 
 const FLOOR_DB = -120;
 const CEILING_DB = 0;
-
-/** Drops `undefined` values so they do not override current settings; keeps unknown keys for validation. */
-function definedOnly(partial: EnvelopeDetectorConfig): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(partial ?? {})) {
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
-}
 
 /**
  * Smooths the Frame level with separate attack and release time constants and

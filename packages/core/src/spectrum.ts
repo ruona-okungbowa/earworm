@@ -3,10 +3,15 @@ import type { WindowName } from "./fft.js";
 import { err, ok } from "./types.js";
 import type { Result } from "./types.js";
 
-const MIN_SAMPLE_RATE = 8_000;
-const MAX_SAMPLE_RATE = 192_000;
 const FLOOR_DBFS = -120;
 const CAP_DBFS = 6;
+
+/** True for a finite sample rate from 8000 to 192000 Hz, the range the spectral functions accept. */
+export function isAnalysisSampleRate(v: unknown): v is number {
+  return (
+    typeof v === "number" && Number.isFinite(v) && v >= 8_000 && v <= 192_000
+  );
+}
 
 /**
  * Magnitude spectrum in dBFS. Returns `size / 2` bins, bin k at
@@ -30,12 +35,7 @@ export function spectrum(
       "FFT size must be a power of two from 256 to 8192",
     );
   }
-  if (
-    typeof sampleRate !== "number" ||
-    !Number.isFinite(sampleRate) ||
-    sampleRate < MIN_SAMPLE_RATE ||
-    sampleRate > MAX_SAMPLE_RATE
-  ) {
+  if (!isAnalysisSampleRate(sampleRate)) {
     return err(
       "invalid-sample-rate",
       "Sample rate must be a finite number from 8000 to 192000 Hz",

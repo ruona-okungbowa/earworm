@@ -1,34 +1,23 @@
-import type {
-  Detector,
-  EarwormEvent,
-  EventSource,
-  KitError,
-  KitErrorCode,
-  Ms,
-} from "@earworm/core";
+import { DEFAULTS } from "@earworm/core";
+import type { Detector, EventSource, KitError, Ms } from "@earworm/core";
 import { medianLatency, noiseFloorFromLevels } from "./calibration-math.js";
 import { parseCalibration } from "./calibration-store.js";
 import type { Calibration, CalibrationStore } from "./calibration-store.js";
 import type { AudioEngine } from "./engine.js";
 import type { Synth } from "./synth.js";
 
-export const DEFAULT_QUIET_PERIOD_MS = 2000;
-export const MIN_QUIET_PERIOD_MS = 500;
-export const MAX_QUIET_PERIOD_MS = 10000;
-export const DEFAULT_MAX_QUIET_LEVEL_DB = -30;
-export const MIN_MAX_QUIET_LEVEL_DB = -100;
-export const MAX_MAX_QUIET_LEVEL_DB = 0;
-export const DEFAULT_CALIBRATION_TIMEOUT_MS = 3000;
-export const MIN_CALIBRATION_TIMEOUT_MS = 2000;
-export const MAX_CALIBRATION_TIMEOUT_MS = 10000;
+const { quietPeriod, maxQuietLevel } = DEFAULTS.calibration;
+const DEFAULT_CALIBRATION_TIMEOUT_MS = 3000;
+const MIN_CALIBRATION_TIMEOUT_MS = 2000;
+const MAX_CALIBRATION_TIMEOUT_MS = 10000;
 /** Number of clicks played for latency calibration. */
-export const CLICK_COUNT = 4;
+const CLICK_COUNT = 4;
 /** Spacing between scheduled clicks. */
-export const CLICK_SPACING_MS = 500;
+const CLICK_SPACING_MS = 500;
 /** Lead time between the call and the first click. */
-export const CLICK_LEAD_MS = 100;
+const CLICK_LEAD_MS = 100;
 /** Widest distance at which a detected click still matches a scheduled one. */
-export const DEFAULT_MAX_MATCH_MS = CLICK_SPACING_MS / 2;
+const DEFAULT_MAX_MATCH_MS = CLICK_SPACING_MS / 2;
 
 export interface MeasureNoiseFloorOptions {
   /** Quiet period in ms, 500 to 10,000. Default 2,000. */
@@ -47,8 +36,7 @@ export interface MeasureLatencyOptions {
 }
 
 export interface CalibrateOptions
-  extends MeasureNoiseFloorOptions,
-    MeasureLatencyOptions {}
+  extends MeasureNoiseFloorOptions, MeasureLatencyOptions {}
 
 export interface Calibrator {
   /** Returns the Noise_Floor in dBFS. Never writes the store. */
@@ -71,16 +59,6 @@ export interface CalibratorOptions {
   wait?: (ms: Ms) => Promise<void>;
 }
 
-function fail(
-  code: KitErrorCode,
-  message: string,
-  field?: string,
-): Promise<never> {
-  const error: KitError = { code, message };
-  if (field !== undefined) error.field = field;
-  return Promise.reject(error);
-}
-
 function checkRange(
   name: string,
   value: number | undefined,
@@ -88,7 +66,12 @@ function checkRange(
   hi: number,
 ): KitError | null {
   if (value === undefined) return null;
-  if (typeof value !== "number" || !Number.isFinite(value) || value < lo || value > hi) {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < lo ||
+    value > hi
+  ) {
     return {
       code: "invalid-config",
       message: `${name} must be a number from ${lo} to ${hi}`,
@@ -126,12 +109,6 @@ export function createCalibrator(options: CalibratorOptions): Calibrator {
     }
   });
 
-  function collect(
-    pick: (e: EarwormEvent) => void,
-  ): () => void {
-    return source.subscribe(pick);
-  }
-
   async function measureNoiseFloor(
     opts: MeasureNoiseFloorOptions = {},
   ): Promise<number> {
@@ -139,21 +116,21 @@ export function createCalibrator(options: CalibratorOptions): Calibrator {
       checkRange(
         "quietPeriodMs",
         opts.quietPeriodMs,
-        MIN_QUIET_PERIOD_MS,
-        MAX_QUIET_PERIOD_MS,
+        quietPeriod.min,
+        quietPeriod.max,
       ) ??
       checkRange(
         "maxQuietLevel",
         opts.maxQuietLevel,
-        MIN_MAX_QUIET_LEVEL_DB,
-        MAX_MAX_QUIET_LEVEL_DB,
+        maxQuietLevel.min,
+        maxQuietLevel.max,
       );
     if (bad !== null) return Promise.reject(bad);
-    const quietMs = opts.quietPeriodMs ?? DEFAULT_QUIET_PERIOD_MS;
-    const maxQuiet = opts.maxQuietLevel ?? DEFAULT_MAX_QUIET_LEVEL_DB;
+    const quietMs = opts.quietPeriodMs ?? quietPeriod.default;
+    const maxQuiet = opts.maxQuietLevel ?? maxQuietLevel.default;
 
     const levels: { timestamp: Ms; level: number }[] = [];
-    const unsubscribe = collect((e) => {
+    const unsubscribe = source.subscribe((e) => {
       if (e.type === "level") {
         levels.push({ timestamp: e.timestamp, level: e.level });
       }
@@ -176,14 +153,15 @@ export function createCalibrator(options: CalibratorOptions): Calibrator {
         opts.timeoutMs,
         MIN_CALIBRATION_TIMEOUT_MS,
         MAX_CALIBRATION_TIMEOUT_MS,
-      ) ?? checkRange("maxMatchMs", opts.maxMatchMs, 0, Number.MAX_SAFE_INTEGER);
+      ) ??
+      checkRange("maxMatchMs", opts.maxMatchMs, 0, Number.MAX_SAFE_INTEGER);
     if (bad !== null) return Promise.reject(bad);
     const timeoutMs = opts.timeoutMs ?? DEFAULT_CALIBRATION_TIMEOUT_MS;
     const voice = opts.voice ?? "click";
     const maxMatch = opts.maxMatchMs ?? DEFAULT_MAX_MATCH_MS;
 
     const detected: Ms[] = [];
-    const unsubscribe = collect((e) => {
+    const unsubscribe = source.subscribe((e) => {
       if (e.type === "onset") detected.push(e.timestamp);
     });
     try {
@@ -221,7 +199,7 @@ export function createCalibrator(options: CalibratorOptions): Calibrator {
 
     load(text) {
       const r = parseCalibration(text);
-      if (!r.ok) return fail(r.error.code, r.error.message, r.error.field);
+      if (!r.ok) return Promise.reject(r.error);
       store.set(r.value);
       return Promise.resolve(r.value);
     },

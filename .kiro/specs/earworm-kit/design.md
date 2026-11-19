@@ -162,10 +162,10 @@ Each factory returns `Result<Detector>`. Config values are those in the Default_
 
 **Onset_Detector.** Energy is the Frame level. State: `armed`, `lastOnsetTs: Ms | null`, and a short deque of `(timestamp, level)` over the attack window. With `thr = noiseFloor + threshold`:
 
-1. The Frame fires when `level > thr`, `armed` is true, `level − min(level over the attack window) > threshold`, and either `lastOnsetTs === null` or `timestamp − lastOnsetTs ≥ refractory`.
-2. Firing sets `armed = false` and `lastOnsetTs = timestamp`. A Frame with `level ≤ thr` sets `armed = true`.
+1. The Frame fires when `level > thr`, `armed` is true, `timestamp − firstTs ≥ attackWindow` (a full attack window of history, so the first Frame never fires), `level − min(level over the attack window) > threshold`, and either `lastOnsetTs === null` or `timestamp − lastOnsetTs ≥ refractory` (default 100 ms).
+2. Firing sets `armed = false`, `lastOnsetTs = timestamp` and `peakSinceOnset = level`. While disarmed, each Frame raises `peakSinceOnset` to `max(peakSinceOnset, level)`, and sets `armed = true` when `level ≤ thr` or `level ≤ peakSinceOnset − threshold`. The second condition re-arms in a room louder than `thr`, for example −43 dBFS with the default −60 dBFS floor (Req 3.13).
 3. `strength = min(1, (level − noiseFloor) / (threshold + 40))`. It is above 0 at a rise equal to the threshold and non-decreasing in the rise (Req 3.4).
-4. Construction and `reset()` set `armed = true`, `lastOnsetTs = null` and clear the deque. With `lastOnsetTs === null` the refractory check is skipped, so no suppression applies until the first Onset_Event (Req 3.11). An explicit `null` is used instead of a sentinel such as `0` or `−Infinity`, so Frames with any finite Timestamp, including negative ones, behave the same.
+4. Construction and `reset()` set `armed = true`, `lastOnsetTs = null`, `firstTs = null`, `peakSinceOnset = −Infinity` and clear the deque. `firstTs` is set from the first accepted Frame (Req 3.12). With `lastOnsetTs === null` the refractory check is skipped, so no suppression applies until the first Onset_Event (Req 3.11). An explicit `null` is used instead of a sentinel such as `0` or `−Infinity`, so Frames with any finite Timestamp, including negative ones, behave the same.
 
 **Pitch_Detector.** Keeps a 2048-sample Sample_History. Per Frame:
 
@@ -173,7 +173,7 @@ Each factory returns `Result<Detector>`. Config values are those in the Default_
 2. Compute the YIN difference function by FFT autocorrelation over lags from `sampleRate/2000` to `sampleRate/80`. Take the first dip below an absolute threshold, refine with parabolic interpolation, then set `confidence = clamp(1 − d', 0, 1)`.
 3. Emit only if `confidence ≥ threshold` and frequency lies in 80 to 2000 Hz. Compute `midi = clamp(round(69 + 12 log2(f/440)), 0, 127)` and `cents = 1200 log2(f / midiToHz(midi))`.
 
-The history is zero-padded after the received samples until 2048 samples have arrived (Req 4.11). `reset()` clears it. `flush()` returns `[]` and keeps it (Req 4.12). Every valid Frame is appended to the history before step 1, so a quiet Frame still advances the window.
+The Pitch_Detector emits nothing until the history holds 2048 samples since construction or the last `reset()` (Req 4.11), so the YIN analysis never runs on a zero-padded window. Zero-padding then only matters for the Spectrum and Band comparison in Property 31. The longest lag is `min(floor(sampleRate / 80), 1023)`, so at sample rates above about 82 kHz the lowest detectable pitch rises above 80 Hz (Req 4.7). `reset()` clears it. `flush()` returns `[]` and keeps it (Req 4.12). Every valid Frame is appended to the history before step 1, so a quiet Frame still advances the window.
 
 **Sample_History storage.** The Pitch, Spectrum and Band Detectors share `createSampleHistory(capacity)`, a ring buffer backed by one preallocated `Float32Array(capacity)` with a write index and a count. The capacity is 2048 for the Pitch_Detector and FFT_Size for the Spectrum and Band Detectors. `push(samples)` copies at most the last `capacity` samples of the Frame and overwrites the oldest entries in the same call, so the history never holds more than `capacity` samples, including while a Frame longer than the capacity is added (Req 4.14, 19.21). `snapshot(out)` writes the held samples oldest first into a reusable analysis buffer and zero-fills the rest. `clear()` sets the count to 0. Each of the three Detectors exposes a read-only `historyLength: number` equal to the count, which tests use to check the bound. It is a property of the Detector object, not a package export, so it does not change the export list checked by Req 16.15. An invalid Frame is rejected before `push`, so it leaves the history unchanged (Req 4.13, 19.16, 20.14).
 
@@ -191,14 +191,16 @@ The history is zero-padded after the received samples until 2048 samples have ar
 
 **Spectrum_Detector and Band_Detector.** Hold a Sample_History of `fftSize` samples in the shared ring buffer, so each holds at most FFT_Size samples at all times (Req 19.21). On a valid Frame they append, then analyse the history (zero-padded after the samples until full), subject to the rate limiter. `reset()` clears the history. `flush()` returns `[]`.
 
+**Band_Detector decisions.** `createBandDetector` defaults `bands` to `BAND_PRESET` when no Band list is given. The constructor checks errors in this order: `invalid-fft-size`, `invalid-sample-rate`, `invalid-window`, then the Band list and unit (by calling `bands` on a silent spectrum, giving `invalid-band` or `invalid-unit`), then `invalid-config` for maxRate.
+
 ### Core: FFT, spectrum, bands
 
 - `fft(re, im)` in-place radix-2. `windowCoefficients(name, size)` for hann, hamming, blackman, rectangular.
 - `spectrum(samples, sampleRate, size, window = "hann"): Result<Float32Array>` (Req 19.1). Validation order: size, sample rate, window, samples. A single buffer shorter than `size` is zero-padded after the samples. A longer one uses its last `size` samples (Req 19.8). Bin 0 has magnitude `|X_0| / Σw` and every other bin `k` in `1..size/2−1` has `2|X_k| / Σw` (Req 19.7). Values are converted to dBFS, floored at −120 and capped at +6 in every bin, including bin 0 (Req 19.7, 19.12). With this scale a full-scale DC input reads 0 dBFS in bin 0 and a full-scale bin-centre sine reads 0 dBFS. Input is never modified.
 - `bands(spectrum, sampleRate, size, window = "hann", bandList, unit = "dbfs"): Result<Record<string, number>>`. Validation covers the list (1 to 32 Bands, unique names), each Band (finite, `0 ≤ lowHz < highHz ≤ Nyquist`, non-empty string name), the unit, the window, and the spectrum length equal to `size/2`.
   - Bin `k` belongs to a Band when `lowHz ≤ k × sampleRate/size < highHz`. Bin `size/2` (Nyquist) is never present in a `size/2`-length spectrum.
-  - Linear bin power follows the Parseval convention: `P_0 = (m_0 · w̄)²` and `P_k = m_k² · w̄² / 2` for `k ≥ 1`, where `m_k` is the linear magnitude from the dBFS value and `w̄` is the mean of the window. Band level = `10 log10(Σ P_k / mean(w²))`, floored at −120. For rectangular, hann and the others this makes a full-scale sine read −3.01 dBFS on the full band. The energy check of Req 19.11 and 20.6 applies only to Frames at −50 dBFS or above whose energy lies below 0.9 × Nyquist. Inside that scope the missing Nyquist bin and the −120 dBFS floor each add well under the 1e-3 relative tolerance.
-  - `normalised` returns `(dBFS + 120) / 120`.
+  - Linear bin power follows the Parseval convention: `P_0 = (m_0 · w̄)²` and `P_k = m_k² · w̄² / 2` for `k ≥ 1`, where `m_k` is the linear magnitude from the dBFS value and `w̄` is the mean of the window. Any bin at or below −120 dBFS counts as zero power. Band level = `10 log10(Σ P_k / mean(w²))`, floored at −120. For rectangular, hann and the others this makes a full-scale sine read −3.01 dBFS on the full band. The energy check of Req 19.11 and 20.6 applies only to Frames at −50 dBFS or above whose energy lies below 0.9 × Nyquist. Inside that scope the missing Nyquist bin and the −120 dBFS floor each add well under the 1e-3 relative tolerance.
+  - `normalised` returns `clamp((dBFS + 120) / 120, 0, 1)`.
 - `BAND_PRESET = [{low,0,250},{mid,250,2000},{high,2000,8000}]` as plain data. With a sample rate below 16,000 Hz `bands` returns `invalid-band` naming `high`.
 
 ### Core: analysis
@@ -258,7 +260,7 @@ A reply equal to the target gives a scale factor of exactly 1 and the same offse
 - `sound`: pair each `sound-start` with the next `sound-end`. Discard an end with no open start. Emit no Mark for a start with no end. Mark `start = startTime`, `duration = end.duration`. Apply `minDuration`. Return `invalid-ordering` when Events are not in ascending Timestamp order or an `endTime` precedes the matching `startTime`.
 - `tap`: pair a `source: "tap"` Onset with the next Release. Mark `start = press.timestamp`, `duration = release.timestamp − press.timestamp`. Apply `minDuration`.
 
-**classify.** For `n` durations and `k` ratios, candidate units are `d_i / r_c`. For each candidate, each duration takes the class with nearest nominal on a log scale (`d² ≤ nominal_c · nominal_{c+1}` assigns the lower class at an exact geometric midpoint). The cost is the sum of squared log errors. The lowest cost wins, with ties broken deterministically toward the smaller unit among candidates within 1e-12 relative cost. Deviation is `d / (unit × ratio[class])`. The minimum-error fit is the result (Req 13.5). When the minimum-error fit leaves class 0 empty or occupies fewer than two classes, and `priorUnit` is given, the classifier discards the fit, sets `unit = priorUnit` and assigns each duration its log-nearest class for that unit (Req 13.6). The prior unit is used and returned exactly as supplied: no refit, no rounding and no rescaling from the observed durations, so the returned `unit` is the same number as `opts.priorUnit` (Req 13.9, 13.10). Deviations are computed with that same value. With no prior and one cluster, the unit is the median duration and the class is 0. With no prior and class 0 empty, the minimum-error fit stands. A duration that is not positive and finite gives `invalid-duration`. Ratios that are empty, do not start at 1, or are not strictly increasing give `invalid-ratios`.
+**classify.** For `n` durations and `k` ratios, candidate units are `d_i / r_c`. When no valid `priorUnit` is given, only candidates that put the shortest duration in class 0 are kept (`d_min² ≤ unit² · r_0 · r_1`, with a single ratio always satisfied), so the shortest duration is anchored to class 0 and class 0 is never empty. When a valid `priorUnit` is given, all candidates are considered and this anchoring is not applied. For each candidate, each duration takes the class with nearest nominal on a log scale (`d² ≤ nominal_c · nominal_{c+1}` assigns the lower class at an exact geometric midpoint). The cost is the sum of squared log errors. The lowest cost wins, with ties broken deterministically toward the smaller unit among candidates within 1e-12 relative cost. Deviation is `d / (unit × ratio[class])`. The minimum-error fit is the result (Req 13.5). When the minimum-error fit leaves class 0 empty or occupies fewer than two classes, and `priorUnit` is given, the classifier discards the fit, sets `unit = priorUnit` and assigns each duration its log-nearest class for that unit (Req 13.6). The prior unit is used and returned exactly as supplied: no refit, no rounding and no rescaling from the observed durations, so the returned `unit` is the same number as `opts.priorUnit` (Req 13.9, 13.10). Deviations are computed with that same value. With no prior and one cluster, the unit is the median duration and the class is 0. With no prior, class 0 is always occupied because of the anchoring rule. A duration that is not positive and finite gives `invalid-duration`. Ratios that are empty, do not start at 1, or are not strictly increasing give `invalid-ratios`.
 
 ### Core: Recording and replay
 
@@ -609,9 +611,9 @@ For any Frame sequence, every Pitch_Event has frequency from 80 to 2000 Hz, an i
 
 ### Property 13: Sine pitch accuracy
 
-For any sine tone from 80 to 2000 Hz above the Noise_Floor supplied for at least 10 consecutive Frames, every Pitch_Event after the first 5 Frames has a frequency within 10 cents of the true frequency.
+For any sine tone from 80 to 2000 Hz above the Noise_Floor, every Pitch_Event is within 10 cents of the true frequency, and no Pitch_Event is emitted before the Sample_History holds 2048 samples since construction or the last `reset()`.
 
-**Validates: Requirements 4.5**
+**Validates: Requirements 4.5, 4.11**
 
 ### Property 14: Harmonic tones report the fundamental
 
@@ -717,7 +719,7 @@ For any Beat_Grid with a zero, negative, NaN or infinite tempo, `quantise` retur
 
 ### Property 31: Sample history semantics
 
-For any sample stream cut into Frames in any way, the Spectrum_Detector's magnitudes at each emitted Event equal `spectrum` of the most recent FFT_Size samples seen so far, zero-padded after the samples until FFT_Size samples have arrived. The same holds for the Band_Detector with `bands`, and for the Pitch_Detector's 2048-sample window. After `reset()` the history is empty. `flush()` returns no Events and does not change later output.
+For any sample stream cut into Frames in any way, the Spectrum_Detector's magnitudes at each emitted Event equal `spectrum` of the most recent FFT_Size samples seen so far, zero-padded after the samples until FFT_Size samples have arrived. The same holds for the Band_Detector with `bands`, and for the Pitch_Detector's 2048-sample window, except that the Pitch_Detector emits no Pitch_Event until the window is full (nothing is compared before then). After `reset()` the history is empty. `flush()` returns no Events and does not change later output.
 
 **Validates: Requirements 4.11, 4.12, 19.19, 19.20, 20.22**
 
@@ -849,7 +851,7 @@ For any Band list that is empty, has more than 32 Bands or has duplicate names, 
 
 ### Property 53: Band levels
 
-For any spectrum, valid Bands and window, each Band level equals `10·log10(Σ bin power / mean(w²))` over the bins with `lowHz ≤ k·sampleRate/size < highHz`, floored at −120, and −120 for a Band with no bin. For any Frame at or above −50 dBFS with energy below 0.9 × Nyquist, drawn from the energy-check generator, a Band covering 0 Hz to the Nyquist reads the mean square of the Frame within 1e-3 relative, and a full-scale sine reads −3.01 dBFS within 0.5 dB, for each of the four windows. The `normalised` unit returns `(dBFS + 120) / 120` in [0, 1]. An all-zero input gives −120 (or 0 normalised) in every Band.
+For any spectrum, valid Bands and window, each Band level equals `10·log10(Σ bin power / mean(w²))` over the bins with `lowHz ≤ k·sampleRate/size < highHz`, floored at −120, and −120 for a Band with no bin. For any Frame at or above −50 dBFS with energy below 0.9 × Nyquist, drawn from the energy-check generator, a Band covering 0 Hz to the Nyquist reads `mean((x·w)²) / mean(w²)` (the mean square of the windowed samples normalised by the window power, as in Property 51) within 1e-3 relative, for each of the four windows. A full-scale sine at least 3 bins from 0 Hz and from the Nyquist reads −3.01 dBFS within 0.5 dB. The `normalised` unit returns `clamp((dBFS + 120) / 120, 0, 1)`. An all-zero input gives −120 (or 0 normalised) in every Band.
 
 **Validates: Requirements 20.5, 20.6, 20.7, 20.16**
 

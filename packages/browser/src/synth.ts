@@ -1,4 +1,3 @@
-import { err } from "@earworm/core";
 import type { KitError, KitErrorCode, Ms } from "@earworm/core";
 import type { AudioEngine } from "./engine.js";
 import type { Gate } from "./gate.js";
@@ -45,10 +44,9 @@ function reject(error: KitError): Promise<never> {
 function failWith(
   code: KitErrorCode,
   message: string,
-  extra?: { field?: string },
+  extra?: { field: string },
 ): Promise<never> {
-  const r = err(code, message, extra);
-  return reject(r.ok ? { code, message } : r.error);
+  return reject({ code, message, ...extra });
 }
 
 export function createSynth(engine: AudioEngine, options: SynthOptions): Synth {

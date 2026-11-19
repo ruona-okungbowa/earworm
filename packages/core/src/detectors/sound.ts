@@ -1,6 +1,11 @@
 import { DEFAULTS, resolveConfig } from "../config.js";
 import type { PartialConfig, Resolved } from "../config.js";
-import { createFrameGuard, frameLevelDb } from "../detector-utils.js";
+import {
+  checkNoiseFloor,
+  createFrameGuard,
+  definedOnly,
+  frameLevelDb,
+} from "../detector-utils.js";
 import type { Detector, EarwormEvent, Frame } from "../events.js";
 import { err, ok } from "../types.js";
 import type { Ms, Result } from "../types.js";
@@ -16,15 +21,6 @@ export interface SoundDetector extends Detector {
 
 type SoundSettings = Resolved<typeof DEFAULTS.sound>;
 
-/** Drops `undefined` values so they do not override current settings; keeps unknown keys for validation. */
-function definedOnly(partial: SoundDetectorConfig): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(partial ?? {})) {
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
-}
-
 /** Resolves ranges, then checks that the end threshold is below the start threshold. */
 function resolveSound(partial?: SoundDetectorConfig): Result<SoundSettings> {
   const resolved = resolveConfig(DEFAULTS.sound, partial);
@@ -32,7 +28,7 @@ function resolveSound(partial?: SoundDetectorConfig): Result<SoundSettings> {
   if (resolved.value.endThreshold >= resolved.value.startThreshold) {
     return err(
       "invalid-config",
-      "Setting \"endThreshold\" must be lower than \"startThreshold\"",
+      'Setting "endThreshold" must be lower than "startThreshold"',
       { setting: "endThreshold" },
     );
   }
@@ -143,13 +139,9 @@ export function createSoundDetector(
       return ok(undefined);
     },
     setNoiseFloor(db: number): Result<void> {
-      if (typeof db !== "number" || !Number.isFinite(db)) {
-        return err("invalid-config", "Noise_Floor must be a finite number", {
-          setting: "noiseFloor",
-        });
-      }
-      noiseFloor = db;
-      return ok(undefined);
+      const r = checkNoiseFloor(db);
+      if (r.ok) noiseFloor = db;
+      return r;
     },
   };
   return ok(detector);

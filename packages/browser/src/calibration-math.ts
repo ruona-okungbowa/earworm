@@ -1,15 +1,15 @@
 import { err, ok } from "@earworm/core";
 import type { LevelEvent, Ms, Result } from "@earworm/core";
+import {
+  MAX_CALIBRATION_LATENCY_MS as MAX_LATENCY_MS,
+  MIN_CALIBRATION_LATENCY_MS as MIN_LATENCY_MS,
+} from "./calibration-store.js";
 
 /** Length of the sliding window used for the short-term level. */
-export const SHORT_TERM_WINDOW_MS = 100;
-
-/** Latency must lie in this range, inclusive (Req 6.11). */
-export const MIN_LATENCY_MS = 0;
-export const MAX_LATENCY_MS = 500;
+const SHORT_TERM_WINDOW_MS = 100;
 
 /** Fewest matched clicks that still give a Latency (Req 6.10). */
-export const MIN_MATCHED_CLICKS = 3;
+const MIN_MATCHED_CLICKS = 3;
 
 /**
  * Highest short-term level, in dBFS, of the Level_Events.

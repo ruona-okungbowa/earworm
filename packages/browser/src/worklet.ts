@@ -1,4 +1,4 @@
-import { createFramer } from "@earworm/core/framing";
+import { createFramer, DEFAULT_FRAME_SIZE } from "@earworm/core/framing";
 import type { Framer } from "@earworm/core/framing";
 
 // AudioWorkletGlobalScope names. Declared here because the DOM lib has no worklet scope
@@ -19,9 +19,9 @@ declare function registerProcessor(
 /** Name passed to `new AudioWorkletNode(ctx, WORKLET_NAME, ...)`. */
 export const WORKLET_NAME = "earworm-framer";
 
-const DEFAULT_FRAME_SIZE = 128;
-
-function readFrameSize(options: { processorOptions?: unknown } | undefined): number {
+function readFrameSize(
+  options: { processorOptions?: unknown } | undefined,
+): number {
   const po = options?.processorOptions;
   if (typeof po === "object" && po !== null && "frameSize" in po) {
     const fs = (po as { frameSize: unknown }).frameSize;

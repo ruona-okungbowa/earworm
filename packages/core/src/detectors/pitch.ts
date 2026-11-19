@@ -1,10 +1,15 @@
 import { DEFAULTS, resolveConfig } from "../config.js";
 import type { PartialConfig } from "../config.js";
-import { createFrameGuard, frameLevelDb } from "../detector-utils.js";
+import {
+  checkNoiseFloor,
+  createFrameGuard,
+  definedOnly,
+  frameLevelDb,
+} from "../detector-utils.js";
 import type { Detector, EarwormEvent, Frame } from "../events.js";
 import { fft } from "../fft.js";
 import { createSampleHistory } from "../sample-history.js";
-import { err, ok } from "../types.js";
+import { ok } from "../types.js";
 import type { Result } from "../types.js";
 
 export type PitchDetectorConfig = PartialConfig<typeof DEFAULTS.pitch>;
@@ -27,14 +32,6 @@ const ABSOLUTE_THRESHOLD = 0.15;
 const MAX_LAG_CAP = WINDOW / 2 - 1;
 // The longest lag is min(floor(sampleRate / 80), 1023). Above about 82 kHz the
 // cap binds, so the lowest detectable pitch rises above 80 Hz.
-
-function definedOnly(partial: PitchDetectorConfig): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(partial ?? {})) {
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
-}
 
 function midiToHz(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
@@ -212,13 +209,9 @@ export function createPitchDetector(
       return ok(undefined);
     },
     setNoiseFloor(db: number): Result<void> {
-      if (typeof db !== "number" || !Number.isFinite(db)) {
-        return err("invalid-config", "Noise_Floor must be a finite number", {
-          setting: "noiseFloor",
-        });
-      }
-      noiseFloor = db;
-      return ok(undefined);
+      const r = checkNoiseFloor(db);
+      if (r.ok) noiseFloor = db;
+      return r;
     },
   };
   return ok(detector);

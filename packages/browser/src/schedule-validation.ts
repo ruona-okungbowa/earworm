@@ -20,12 +20,12 @@ export interface ValidatedRequest {
   ungated: boolean;
 }
 
-export const MIN_FREQUENCY_HZ = 20;
-export const MAX_FREQUENCY_HZ = 20_000;
-export const MIN_DURATION_MS = 1;
-export const MAX_DURATION_MS = 60_000;
-export const DEFAULT_FREQUENCY_HZ = 440;
-export const DEFAULT_DURATION_MS = 200;
+const MIN_FREQUENCY_HZ = 20;
+const MAX_FREQUENCY_HZ = 20_000;
+const MIN_DURATION_MS = 1;
+const MAX_DURATION_MS = 60_000;
+const DEFAULT_FREQUENCY_HZ = 440;
+const DEFAULT_DURATION_MS = 200;
 
 const isFiniteNumber = (v: unknown): v is number =>
   typeof v === "number" && Number.isFinite(v);

@@ -1,4 +1,4 @@
-import { err, ok } from "@earworm/core";
+import { DEFAULTS, err, ok } from "@earworm/core";
 import type { EarwormEvent, EventSource, Ms, Result } from "@earworm/core";
 
 export type GateMode = "ignore-synth" | "off";
@@ -19,8 +19,7 @@ export interface GateOptions {
   hasCalibration?: () => boolean;
 }
 
-const DEFAULT_TAIL_MS = 150;
-const MAX_TAIL_MS = 5000;
+const { tail } = DEFAULTS.gate;
 
 interface GateWindow {
   start: Ms;
@@ -28,11 +27,11 @@ interface GateWindow {
 }
 
 export function createGate(opts: GateOptions = {}): Result<Gate> {
-  const tailMs = opts.tailMs ?? DEFAULT_TAIL_MS;
-  if (!Number.isFinite(tailMs) || tailMs < 0 || tailMs > MAX_TAIL_MS) {
+  const tailMs = opts.tailMs ?? tail.default;
+  if (!Number.isFinite(tailMs) || tailMs < tail.min || tailMs > tail.max) {
     return err(
       "invalid-gate-window",
-      `tailMs must be a finite number from 0 to ${MAX_TAIL_MS}`,
+      `tailMs must be a finite number from ${tail.min} to ${tail.max}`,
       { setting: "tailMs" },
     );
   }

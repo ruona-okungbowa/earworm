@@ -1,7 +1,29 @@
 import type { Frame } from "./events.js";
-import type { Ms } from "./types.js";
+import { err, ok } from "./types.js";
+import type { Ms, Result } from "./types.js";
 
 const FLOOR_DB = -120;
+
+/** Drops `undefined` values so they do not override current settings; keeps unknown keys for validation. */
+export function definedOnly(
+  partial: object | undefined,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(partial ?? {})) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
+/** `ok` for a finite Noise_Floor, else `invalid-config` naming `noiseFloor`. */
+export function checkNoiseFloor(db: number): Result<void> {
+  if (typeof db !== "number" || !Number.isFinite(db)) {
+    return err("invalid-config", "Noise_Floor must be a finite number", {
+      setting: "noiseFloor",
+    });
+  }
+  return ok(undefined);
+}
 
 /** `max(-120, 20·log10(rms))`. Exactly -120 for an all-zero (or empty) Frame. */
 export function frameLevelDb(samples: ArrayLike<number>): number {

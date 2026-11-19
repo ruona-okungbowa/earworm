@@ -1,8 +1,13 @@
 import { DEFAULTS, resolveConfig } from "../config.js";
 import type { PartialConfig } from "../config.js";
-import { createFrameGuard, frameLevelDb } from "../detector-utils.js";
+import {
+  checkNoiseFloor,
+  createFrameGuard,
+  definedOnly,
+  frameLevelDb,
+} from "../detector-utils.js";
 import type { Detector, EarwormEvent, Frame } from "../events.js";
-import { err, ok } from "../types.js";
+import { ok } from "../types.js";
 import type { Ms, Result } from "../types.js";
 
 export type OnsetDetectorConfig = PartialConfig<typeof DEFAULTS.onset>;
@@ -12,15 +17,6 @@ export interface OnsetDetector extends Detector {
   configure(partial: OnsetDetectorConfig): Result<void>;
   /** Sets the Noise_Floor in dBFS. On a non-finite value nothing changes. */
   setNoiseFloor(db: number): Result<void>;
-}
-
-/** Drops `undefined` values so they do not override current settings; keeps unknown keys for validation. */
-function definedOnly(partial: OnsetDetectorConfig): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(partial ?? {})) {
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
 }
 
 interface Entry {
@@ -134,13 +130,9 @@ export function createOnsetDetector(
       return ok(undefined);
     },
     setNoiseFloor(db: number): Result<void> {
-      if (typeof db !== "number" || !Number.isFinite(db)) {
-        return err("invalid-config", "Noise_Floor must be a finite number", {
-          setting: "noiseFloor",
-        });
-      }
-      noiseFloor = db;
-      return ok(undefined);
+      const r = checkNoiseFloor(db);
+      if (r.ok) noiseFloor = db;
+      return r;
     },
   };
   return ok(detector);
