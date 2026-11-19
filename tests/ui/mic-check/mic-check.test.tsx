@@ -1,8 +1,9 @@
 // **Validates: Requirements 15.2, 15.3, 15.5, 15.6, 15.7, 15.8, 15.13, 15.14**
 import { act, createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Mock } from "vitest";
 import { createEmitter } from "@earworm/core";
-import type { EarwormEvent, Emitter } from "@earworm/core";
+import type { EarwormEvent, Emitter, EventSource as CoreEventSource } from "@earworm/core";
 import { createCalibrationStore } from "@earworm/browser";
 import type { Calibration, Calibrator, CapturePipeline, TapSource } from "@earworm/browser";
 import { MicCheck } from "@earworm/ui";
@@ -30,7 +31,7 @@ interface Fakes {
   calibrator: Calibrator;
   calibrate: ReturnType<typeof vi.fn>;
   store: ReturnType<typeof createCalibrationStore>;
-  onSourceChange: ReturnType<typeof vi.fn>;
+  onSourceChange: Mock<(source: CoreEventSource) => void>;
 }
 
 function makeFakes(): Fakes {
@@ -70,7 +71,7 @@ function makeFakes(): Fakes {
     calibrator,
     calibrate,
     store,
-    onSourceChange: vi.fn(),
+    onSourceChange: vi.fn<(source: CoreEventSource) => void>(),
   };
 }
 
