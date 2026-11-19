@@ -5,7 +5,7 @@ import type { Band, Detector, EarwormEvent, Frame } from "../events.js";
 import { SUPPORTED_FFT_SIZES, WINDOW_NAMES } from "../fft.js";
 import type { WindowName } from "../fft.js";
 import { createSampleHistory } from "../sample-history.js";
-import { spectrum } from "../spectrum.js";
+import { isAnalysisSampleRate, spectrum } from "../spectrum.js";
 import { err, ok } from "../types.js";
 import type { Result } from "../types.js";
 
@@ -28,9 +28,6 @@ export interface BandDetector extends Detector {
   /** Number of samples held in the Sample_History, at most the FFT_Size. */
   readonly historyLength: number;
 }
-
-const MIN_SAMPLE_RATE = 8_000;
-const MAX_SAMPLE_RATE = 192_000;
 
 /**
  * Emits one Band_Event per valid Frame, limited to `maxRate` Events per
@@ -56,12 +53,7 @@ export function createBandDetector(
       "FFT size must be a power of two from 256 to 8192",
     );
   }
-  if (
-    typeof sampleRate !== "number" ||
-    !Number.isFinite(sampleRate) ||
-    sampleRate < MIN_SAMPLE_RATE ||
-    sampleRate > MAX_SAMPLE_RATE
-  ) {
+  if (!isAnalysisSampleRate(sampleRate)) {
     return err(
       "invalid-sample-rate",
       "Sample rate must be a finite number from 8000 to 192000 Hz",

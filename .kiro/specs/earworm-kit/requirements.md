@@ -62,7 +62,7 @@ The kit stores no audio. Recordings hold Events only, and audio files exist only
 | -------------------------- | ----------------------- | ----------------- |
 | Onset threshold            | 10 dB above Noise_Floor | 3 to 40 dB        |
 | Onset attack window        | 30 ms                   | 5 to 100 ms       |
-| Refractory period          | 60 ms                   | 0 to 1,000 ms     |
+| Refractory period          | 100 ms                  | 0 to 1,000 ms     |
 | Pitch confidence threshold | 0.8                     | 0 to 1            |
 | Noise-floor quiet period   | 2,000 ms                | 500 to 10,000 ms  |
 | Maximum quiet level        | −30 dBFS                | −100 to 0 dBFS    |
@@ -147,16 +147,18 @@ The kit stores no audio. Recordings hold Events only, and audio files exist only
 #### Acceptance Criteria
 
 1. WHEN the input energy rises above the Noise_Floor by more than the configured onset threshold in dB (default and range in the Default_Table) within the configured attack window in milliseconds (default and range in the Default_Table), THE Onset_Detector SHALL emit exactly one Onset_Event whose Timestamp is the Frame time, in milliseconds on the Audio_Clock, at which the rise first exceeds the onset threshold.
-2. WHEN an Onset_Event has been emitted, THE Onset_Detector SHALL suppress further Onset_Events for the configured refractory period in milliseconds (default 60 ms, range 0 to 1,000 ms), measured from the Timestamp of the emitted Onset_Event.
+2. WHEN an Onset_Event has been emitted, THE Onset_Detector SHALL suppress further Onset_Events for the configured refractory period in milliseconds (default 100 ms, range 0 to 1,000 ms), measured from the Timestamp of the emitted Onset_Event.
 3. WHILE the input energy is at or below the Noise_Floor plus the onset threshold (default and range in the Default_Table), THE Onset_Detector SHALL emit no Onset_Events.
 4. THE Onset_Detector SHALL set the strength of each Onset_Event to a number from 0 to 1 inclusive, where a rise equal to the onset threshold maps to a value greater than 0, and the value does not decrease as the energy rise increases.
 5. WHEN a Detector receives the same Frame sequence twice from a fresh state, THE Detector SHALL emit identical Events, including identical Timestamps and strengths, both times.
-6. FOR ALL Frame sequences, THE Onset_Detector SHALL emit Onset_Events whose Timestamps are at least the refractory period (default 60 ms, range 0 to 1,000 ms) apart.
+6. FOR ALL Frame sequences, THE Onset_Detector SHALL emit Onset_Events whose Timestamps are at least the refractory period (default 100 ms, range 0 to 1,000 ms) apart.
 7. THE Onset_Detector SHALL meet the expected Events listed in `fixtures/recorded/manifest.json` for every Recorded_Fixture of knocks and claps, with each emitted Onset_Event matching an expected Event and no expected Event left unmatched or extra Event emitted, where "matching" means within 12 ms of an expected Event.
 8. IF a Frame contains a non-finite energy value or its time is earlier than the previous Frame's time, THEN THE Onset_Detector SHALL emit no Onset_Event for that Frame and SHALL keep its state unchanged.
 9. FOR ALL generated click trains of 1 to 12 clicks, 120 to 1,000 ms apart, at −30 to −6 dBFS over low noise, THE Onset_Detector SHALL emit exactly one Onset_Event per click, each within 12 ms of the true click time.
 10. THE Onset_Detector SHALL emit no Onset_Event for the quiet-room and fan fixtures, and at most one for the door fixture.
 11. WHILE no Onset_Event has been emitted since construction or since the last `reset()`, THE Onset_Detector SHALL apply no refractory suppression of criterion 2.
+12. THE Onset_Detector SHALL emit no Onset_Event until it has accepted Frames spanning at least the configured attack window (the Frame Timestamp minus the Timestamp of the first accepted Frame since construction or the last `reset()` is at least the attack window), so a Frame that is the first one seen never produces an Onset_Event.
+13. WHEN an Onset_Event has been emitted, THE Onset_Detector SHALL be disarmed until a Frame level is at or below the Noise_Floor plus the onset threshold, or at least the onset threshold in dB below the highest Frame level since that Onset_Event, whichever happens first, so that a room louder than the Noise_Floor plus the onset threshold still re-arms.
 
 ### Requirement 4: Pitch detection
 
@@ -168,13 +170,13 @@ The kit stores no audio. Recordings hold Events only, and audio files exist only
 2. THE Pitch_Detector SHALL include in each Pitch_Event the MIDI note number nearest to the estimated frequency (integer from 0 to 127, using A4 = 440 Hz = MIDI note 69) and the offset from that note in cents (from -50 to +50 inclusive).
 3. THE Pitch_Detector SHALL include in each Pitch_Event a confidence value from 0 to 1 inclusive.
 4. IF the confidence of the estimate for a Frame is below the configured confidence threshold (default 0.8, range 0 to 1), THEN THE Pitch_Detector SHALL emit no Pitch_Event for that Frame and SHALL continue processing the next Frame.
-5. WHEN a synthetic sine tone with a frequency from 80 Hz to 2000 Hz inclusive, at a level above the Noise_Floor, is supplied for at least 10 consecutive Frames, THE Pitch_Detector SHALL emit Pitch_Events whose estimated frequency is within 10 cents of the true frequency for every Pitch_Event after the first 5 Frames.
+5. WHEN a synthetic sine tone with a frequency from 80 Hz to 2000 Hz inclusive, at a level above the Noise_Floor, is supplied, THE Pitch_Detector SHALL emit Pitch_Events such that every Pitch_Event is within 10 cents of the true frequency.
 6. WHILE the input is silent (all samples equal to 0) or its level is below the Noise_Floor, THE Pitch_Detector SHALL emit no Pitch_Events.
-7. THE Pitch_Detector SHALL emit no Pitch_Event with a frequency outside 80 to 2000 Hz.
+7. THE Pitch_Detector SHALL emit no Pitch_Event with a frequency outside 80 to 2000 Hz. The longest lag searched is min(floor(sampleRate / 80), 1023) samples, so at sample rates above about 82 kHz the lowest detectable pitch rises above 80 Hz.
 8. THE Pitch_Detector SHALL meet the expected Events listed in `fixtures/recorded/manifest.json` for every Recorded_Fixture of hums and whistles.
 9. WHEN a harmonic tone (a fundamental from 80 to 1,000 Hz with at least 4 harmonics) is supplied, THE Pitch_Detector SHALL report the fundamental within 20 cents and SHALL never report a frequency an octave above or below it.
 10. WHEN white noise above the Noise_Floor is supplied, THE Pitch_Detector SHALL emit no Pitch_Events.
-11. WHEN a Frame is received, THE Pitch_Detector SHALL estimate the pitch from the Sample_History of the most recent 2048 samples (the pitch window) across consecutive Frames, padding with zeros after the received samples only until 2048 samples have arrived, as in Requirement 19 criterion 19.
+11. WHEN a Frame is received, THE Pitch_Detector SHALL estimate the pitch from the Sample_History of the most recent 2048 samples (the pitch window) across consecutive Frames, padding with zeros after the received samples only until 2048 samples have arrived, as in Requirement 19 criterion 19. THE Pitch_Detector SHALL emit no Pitch_Event until its Sample_History holds 2048 samples since construction or the last reset().
 12. WHEN `reset()` is called on the Pitch_Detector, THE Pitch_Detector SHALL clear its Sample_History, and WHEN `flush()` is called on the Pitch_Detector, THE Pitch_Detector SHALL return no Events and SHALL leave its Sample_History unchanged.
 13. IF a Frame is empty, contains any sample that is NaN or infinite, or has a Timestamp earlier than the previous Frame's Timestamp, THEN THE Pitch_Detector SHALL emit no Pitch_Event for that Frame and SHALL keep its state, including its Sample_History, unchanged.
 14. THE Pitch_Detector SHALL hold at most 2048 samples (the pitch window size of criterion 11) in its Sample_History at all times, discarding the oldest samples as soon as each Frame is added.
@@ -338,6 +340,7 @@ The kit stores no audio. Recordings hold Events only, and audio files exist only
 3. WHEN every duration is multiplied by the same factor from 0.1 to 10, THE Duration_Classifier SHALL return the same class indices and Deviations within 0.001, and the unit multiplied by that factor within 0.1%.
 4. WHEN the input order is changed, THE Duration_Classifier SHALL return the same class and Deviation for each duration.
 5. WHEN durations are exact multiples of a unit by Ratio_Set entries, each perturbed by up to ±20%, and at least two classes occur, including class 0, THE Duration_Classifier SHALL return the unperturbed classes, where the Duration_Classifier returns the fit with the minimum error.
+   5a. WHERE no valid prior unit is supplied, THE Duration_Classifier SHALL assign the shortest duration to class 0 and choose the minimum-error fit among units that do so.
 6. WHERE a prior unit is supplied, WHEN class 0 is absent from the durations or fewer than two classes can be told apart, THE Duration_Classifier SHALL classify with the prior unit.
 7. IF a duration is not a positive finite number, THEN THE Duration_Classifier SHALL return an invalid-duration Kit_Error.
 8. IF the Ratio_Set is empty, does not start at 1 or is not strictly increasing, THEN THE Duration_Classifier SHALL return an invalid-ratios Kit_Error.
@@ -501,8 +504,8 @@ The kit stores no audio. Recordings hold Events only, and audio files exist only
 3. IF the Band list is empty, contains more than 32 Bands, or contains two Bands with the same name, THEN THE Core SHALL return an invalid-band Kit_Error and no levels.
 4. WHERE two Bands overlap, THE Core SHALL accept both and compute each Band independently.
 5. THE Core SHALL assign bin k to a Band when lowHz ≤ k × sampleRate ÷ size < highHz, and WHERE the highHz equals the Nyquist, THE Core SHALL also assign the bin at the Nyquist frequency when it exists.
-6. THE Core SHALL compute the level of each Band in dBFS as 10 × log10 of the sum of the linear power of the Band's bins, divided by the power correction of the supplied window (the mean of the squared window values), so that, for each of hann, hamming, blackman and rectangular, the Band that covers 0 Hz to the Nyquist reads the mean square of the Frame within a relative difference of 1e-3 for every Frame at or above −50 dBFS whose energy lies below 0.9 × Nyquist (a full-scale sine of amplitude 1.0 reads -3.01 dBFS within 0.5 dB), and SHALL report -120 dBFS for a Band that contains no bin and for any level below -120 dBFS.
-7. WHERE the unit is normalised, THE Core SHALL return for each Band the value (level in dBFS + 120) ÷ 120, a number from 0 to 1 inclusive, and WHERE no unit is supplied THE Core SHALL use dbfs.
+6. THE Core SHALL compute the level of each Band in dBFS as 10 × log10 of the sum of the linear power of the Band's bins, divided by the power correction of the supplied window (the mean of the squared window values), so that, for each of hann, hamming, blackman and rectangular, the Band that covers 0 Hz to the Nyquist reads mean((x·w)²) ÷ mean(w²), the mean square of the windowed samples normalised by the window power as in Requirement 19 criterion 11, within a relative difference of 1e-3 for every Frame at or above −50 dBFS whose energy lies below 0.9 × Nyquist (a full-scale sine of amplitude 1.0 at least 3 bins from 0 Hz and from the Nyquist reads -3.01 dBFS within 0.5 dB), and SHALL report -120 dBFS for a Band that contains no bin and for any level below -120 dBFS.
+7. WHERE the unit is normalised, THE Core SHALL return for each Band the value (level in dBFS + 120) ÷ 120, clamped to 0 to 1, and WHERE no unit is supplied THE Core SHALL use dbfs.
 8. IF the unit is neither dbfs nor normalised, THEN THE Core SHALL return an invalid-unit Kit_Error and no levels.
 9. IF the spectrum length is not size ÷ 2, or the size or sample rate is invalid as in Requirement 19 criteria 2 and 3, THEN THE Core SHALL return an invalid-spectrum Kit_Error and no levels.
 10. THE Core SHALL provide a Band_Preset of three Bands as plain data: low (0 to 250 Hz), mid (250 to 2,000 Hz) and high (2,000 to 8,000 Hz), and SHALL contain no Band that belongs to one app.

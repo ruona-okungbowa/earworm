@@ -24,11 +24,7 @@ export function createReplaySource(
         const e = sorted[next];
         if (e === undefined || !(e.timestamp <= nowMs)) break;
         next += 1;
-        try {
-          emitter.emit(e);
-        } catch {
-          // never throws
-        }
+        emitter.emit(e);
       }
     },
   };

@@ -1,20 +1,18 @@
-import { createEmitter } from "@earworm/core";
+import { createEmitter, DEFAULT_FRAME_SIZE } from "@earworm/core";
 import type { Detector, EventSource, Frame, KitError } from "@earworm/core";
 import type { AudioEngine } from "./engine.js";
 import { createFrameProcessor } from "./frame-processor.js";
-import type { FrameProcessor } from "./frame-processor.js";
+import type {
+  FrameProcessor,
+  FrameProcessorCalibration,
+} from "./frame-processor.js";
 import type { Gate } from "./gate.js";
 import { getWorkletUrl } from "./worklet-url-loader.js";
 
 export type CaptureState = "stopped" | "starting" | "running" | "stopping";
 
-/**
- * The part of a Calibration store the pipeline reads. The full `CalibrationStore`
- * (task 24.4) satisfies this structurally.
- */
-export interface CaptureCalibration {
-  get(): { noiseFloorDb: number; latencyMs: number } | null;
-}
+/** The part of a Calibration store the pipeline reads. `CalibrationStore` satisfies it. */
+export type CaptureCalibration = FrameProcessorCalibration;
 
 export interface CapturePipelineOptions {
   gate?: Gate;
@@ -32,7 +30,6 @@ export interface CapturePipeline extends EventSource {
 
 /** Must match `WORKLET_NAME` in worklet.ts. That file registers a processor on import, so it is not imported here. */
 const WORKLET_NAME = "earworm-framer";
-const DEFAULT_FRAME_SIZE = 128;
 
 function kitError(code: KitError["code"], message: string): KitError {
   return { code, message };

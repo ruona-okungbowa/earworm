@@ -1,11 +1,4 @@
-import type {
-  BandEvent,
-  EarwormEvent,
-  EnvelopeEvent,
-  EventSource,
-  SpectrumEvent,
-  Unsubscribe,
-} from "@earworm/core";
+import type { EarwormEvent, EventSource, Unsubscribe } from "@earworm/core";
 
 /** Returns the last event in `events` whose type is `type`, or `null`. */
 export function latestOfType<T extends EarwormEvent["type"]>(
@@ -50,13 +43,13 @@ export function createLatestValueStore(): LatestValueStore {
   const push = (event: EarwormEvent): void => {
     switch (event.type) {
       case "envelope":
-        update({ ...snapshot, envelope: (event as EnvelopeEvent).level });
+        update({ ...snapshot, envelope: event.level });
         break;
       case "spectrum":
-        update({ ...snapshot, spectrum: (event as SpectrumEvent).magnitudes });
+        update({ ...snapshot, spectrum: event.magnitudes });
         break;
       case "band":
-        update({ ...snapshot, bands: (event as BandEvent).values });
+        update({ ...snapshot, bands: event.values });
         break;
       default:
         break;

@@ -1,11 +1,15 @@
 import { DEFAULTS, resolveConfig } from "../config.js";
-import { createFrameGuard, createRateGate } from "../detector-utils.js";
+import {
+  createFrameGuard,
+  createRateGate,
+  definedOnly,
+} from "../detector-utils.js";
 import type { Detector, EarwormEvent, Frame } from "../events.js";
 import { SUPPORTED_FFT_SIZES, WINDOW_NAMES } from "../fft.js";
 import type { WindowName } from "../fft.js";
 import { createSampleHistory } from "../sample-history.js";
 import type { SampleHistory } from "../sample-history.js";
-import { spectrum } from "../spectrum.js";
+import { isAnalysisSampleRate, spectrum } from "../spectrum.js";
 import { err, ok } from "../types.js";
 import type { Ms, Result } from "../types.js";
 
@@ -34,23 +38,12 @@ const KNOWN_KEYS = ["sampleRate", "fftSize", "window", "maxRate"];
 const DEFAULT_SAMPLE_RATE = 48_000;
 const DEFAULT_FFT_SIZE = 2048;
 const DEFAULT_WINDOW: WindowName = "hann";
-const MIN_SAMPLE_RATE = 8_000;
-const MAX_SAMPLE_RATE = 192_000;
 
 interface Settings {
   sampleRate: number;
   fftSize: number;
   window: WindowName;
   maxRate: number;
-}
-
-/** Drops `undefined` values so they do not override current settings; keeps unknown keys for validation. */
-function definedOnly(partial: SpectrumDetectorConfig): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(partial ?? {})) {
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
 }
 
 /**
@@ -80,12 +73,7 @@ function validate(
   const sampleRate = Object.hasOwn(given, "sampleRate")
     ? given["sampleRate"]
     : current.sampleRate;
-  if (
-    typeof sampleRate !== "number" ||
-    !Number.isFinite(sampleRate) ||
-    sampleRate < MIN_SAMPLE_RATE ||
-    sampleRate > MAX_SAMPLE_RATE
-  ) {
+  if (!isAnalysisSampleRate(sampleRate)) {
     return err(
       "invalid-sample-rate",
       "Sample rate must be a finite number from 8000 to 192000 Hz",
@@ -131,7 +119,7 @@ export function createSpectrumDetector(
       window: DEFAULT_WINDOW,
       maxRate: DEFAULTS.spectrum.maxRate.default,
     },
-    definedOnly(config ?? {}),
+    definedOnly(config),
   );
   if (!resolved.ok) return resolved;
 
@@ -181,7 +169,7 @@ export function createSpectrumDetector(
       return [];
     },
     configure(partial: SpectrumDetectorConfig): Result<void> {
-      const next = validate(settings, definedOnly(partial ?? {}));
+      const next = validate(settings, definedOnly(partial));
       if (!next.ok) return next;
       if (next.value.fftSize !== settings.fftSize) {
         history = createSampleHistory(next.value.fftSize);

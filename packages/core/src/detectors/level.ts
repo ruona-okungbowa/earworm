@@ -3,6 +3,7 @@ import type { PartialConfig } from "../config.js";
 import {
   createFrameGuard,
   createRateGate,
+  definedOnly,
   frameLevelDb,
 } from "../detector-utils.js";
 import type { Detector, EarwormEvent, Frame } from "../events.js";
@@ -14,15 +15,6 @@ export type LevelDetectorConfig = PartialConfig<typeof DEFAULTS.level>;
 export interface LevelDetector extends Detector {
   /** Applies the given settings. On error nothing changes. */
   configure(partial: LevelDetectorConfig): Result<void>;
-}
-
-/** Drops `undefined` values so they do not override current settings; keeps unknown keys for validation. */
-function definedOnly(partial: LevelDetectorConfig): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(partial ?? {})) {
-    if (v !== undefined) out[k] = v;
-  }
-  return out;
 }
 
 /**

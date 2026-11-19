@@ -52,13 +52,7 @@ export function createTapSource(opts: TapSourceOptions): TapSource {
   const apply = (input: TapInput, event?: Event): void => {
     const result = tapStep(state, input);
     state = result.state;
-    for (const e of result.events) {
-      try {
-        emitter.emit(e);
-      } catch {
-        // a listener failure never stops the source
-      }
-    }
+    for (const e of result.events) emitter.emit(e);
     if (result.error) {
       for (const l of [...errorListeners]) {
         try {
@@ -80,8 +74,7 @@ export function createTapSource(opts: TapSourceOptions): TapSource {
     attached.push(() => target.removeEventListener(type, handler));
   };
 
-  const isSpace = (e: Event): boolean =>
-    (e as KeyboardEvent).code === "Space";
+  const isSpace = (e: Event): boolean => (e as KeyboardEvent).code === "Space";
 
   return {
     subscribe: (listener) => emitter.subscribe(listener),
