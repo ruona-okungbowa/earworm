@@ -44,6 +44,9 @@ export function noiseFloorFromLevels(
   // Recompute each window from scratch to keep the arithmetic exact.
   for (let i = 0; i < usable.length; i++) {
     const start = usable[i]!.t;
+    // Events sharing a timestamp share one window [t, t + 100), which the
+    // first of them already covered. Skipping keeps the result order-independent.
+    if (i > 0 && usable[i - 1]!.t === start) continue;
     let sum = 0;
     let count = 0;
     for (

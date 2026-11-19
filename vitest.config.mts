@@ -3,10 +3,10 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 // Vitest mutates `instances`, so each project needs its own copy.
-const browser = () => ({
+const browser = (args: string[] = []) => ({
   enabled: true,
   headless: true,
-  provider: playwright(),
+  provider: playwright({ launchOptions: { args } }),
   instances: [{ browser: "chromium" as const }],
 });
 
@@ -50,7 +50,11 @@ export default defineConfig({
           name: "ui",
           include: ["tests/ui/**/*.test.{ts,tsx}"],
           provide: { pbtRuns },
-          browser: browser(),
+          // A fake microphone and an auto-accepted permission prompt, for the real Capture_Pipeline.
+          browser: browser([
+            "--use-fake-device-for-media-stream",
+            "--use-fake-ui-for-media-stream",
+          ]),
         },
       },
     ],
