@@ -37,11 +37,37 @@ module.exports = {
       },
     },
     {
+      name: "do-as-i-do-logic-stays-pure",
+      comment:
+        "Do As I Do logic and story run without the browser package, the ui package or React.",
+      severity: "error",
+      from: { path: "^apps/do-as-i-do/src/(logic|story)/" },
+      to: {
+        path: [
+          "^packages/(browser|ui)/",
+          "node_modules/(@types/)?(react|react-dom)/",
+        ],
+      },
+    },
+    {
+      name: "do-as-i-do-runtime-has-no-ui",
+      comment:
+        "Do As I Do runtime, logic and story never import its ui folder.",
+      severity: "error",
+      from: { path: "^apps/do-as-i-do/src/(runtime|logic|story)/" },
+      to: { path: "^apps/do-as-i-do/src/ui/" },
+    },
+    {
       name: "apps-use-package-names",
       comment: "Apps import @earworm/* by name, never a path into packages/.",
       severity: "error",
       from: { path: "^(apps)/" },
-      to: { path: "^packages/", dependencyTypesNot: ["aliased-workspace"] },
+      // "undetermined": an app lists @earworm/* in its own package.json, so the bare import
+      // resolves through the workspace symlink. Relative paths into packages/ stay "local".
+      to: {
+        path: "^packages/",
+        dependencyTypesNot: ["aliased-workspace", "undetermined"],
+      },
     },
     {
       name: "tests-use-package-names",

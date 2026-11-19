@@ -1,0 +1,21 @@
+{
+  "name": "do-as-i-do",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./story": "./src/story/index.ts",
+    "./logic": "./src/logic/index.ts",
+    "./logic/late": "./src/logic/late/index.ts",
+    "./runtime": "./src/runtime/index.ts",
+    "./ui": "./src/ui/index.ts"
+  },
+  "dependencies": {
+    "@earworm/core": "*",
+    "@earworm/browser": "*",
+    "@earworm/ui": "*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "scripts": { "typecheck": "tsc --noEmit -p tsconfig.json" }
+}

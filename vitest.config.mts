@@ -19,7 +19,7 @@ export default defineConfig({
   test: {
     coverage: {
       provider: "v8",
-      include: ["packages/*/src/**"],
+      include: ["packages/*/src/**", "apps/*/src/**"],
       reporter: ["text", "lcov", "json-summary"],
     },
     projects: [
@@ -35,8 +35,20 @@ export default defineConfig({
       },
       {
         test: {
+          name: "do-as-i-do-logic",
+          include: ["tests/do-as-i-do/logic/**/*.test.ts"],
+          provide: { pbtRuns },
+          environment: "node",
+          testTimeout: 60_000,
+        },
+      },
+      {
+        test: {
           name: "browser",
-          include: ["tests/browser/**/*.test.ts"],
+          include: [
+            "tests/browser/**/*.test.ts",
+            "tests/do-as-i-do/integration/**/*.test.ts",
+          ],
           provide: { pbtRuns },
           browser: browser(),
         },
@@ -48,7 +60,10 @@ export default defineConfig({
         optimizeDeps: { include: ["react", "react-dom", "react-dom/client"] },
         test: {
           name: "ui",
-          include: ["tests/ui/**/*.test.{ts,tsx}"],
+          include: [
+            "tests/ui/**/*.test.{ts,tsx}",
+            "tests/do-as-i-do/ui/**/*.test.{ts,tsx}",
+          ],
           provide: { pbtRuns },
           // A fake microphone and an auto-accepted permission prompt, for the real Capture_Pipeline.
           browser: browser([
